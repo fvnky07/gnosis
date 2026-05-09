@@ -6,7 +6,11 @@ node_modules
 # Build outputs
 dist
 build
+out
 *.tsbuildinfo
+
+# Rust / Tauri
+target
 
 # Environment variables
 .env
@@ -49,3 +53,8 @@ coverage
 .cache
 tmp
 temp
+
+# Agent / tooling state (not to be committed)
+.claude/
+.omc/
+.aider*
