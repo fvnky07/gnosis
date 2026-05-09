@@ -1,0 +1,13 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "sql",
+  "description": "SQLite access for the gnosis derived index.",
+  "windows": ["main"],
+  "permissions": [
+    "sql:default",
+    "sql:allow-load",
+    "sql:allow-execute",
+    "sql:allow-select",
+    "sql:allow-close"
+  ]
+}

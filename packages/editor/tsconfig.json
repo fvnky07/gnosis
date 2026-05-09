@@ -1,0 +1,12 @@
+{
+	"extends": "@gnosis/config/tsconfig.base.json",
+	"compilerOptions": {
+		"outDir": "dist",
+		"rootDir": "src",
+		"module": "ESNext",
+		"moduleResolution": "Bundler",
+		"noEmit": true,
+		"strict": true
+	},
+	"include": ["src"]
+}

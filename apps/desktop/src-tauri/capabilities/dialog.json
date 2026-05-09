@@ -1,0 +1,13 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "dialog",
+  "description": "Native dialogs for vault picker and confirmations.",
+  "windows": ["main"],
+  "permissions": [
+    "dialog:default",
+    "dialog:allow-open",
+    "dialog:allow-save",
+    "dialog:allow-message",
+    "dialog:allow-confirm"
+  ]
+}

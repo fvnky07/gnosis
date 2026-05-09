@@ -1,0 +1,13 @@
+{
+	"extends": "@gnosis/config/tsconfig.base.json",
+	"compilerOptions": {
+		"outDir": "dist",
+		"rootDir": ".",
+		"module": "ESNext",
+		"moduleResolution": "Bundler",
+		"noEmit": true,
+		"strict": true,
+		"types": ["vitest/globals"]
+	},
+	"include": ["src", "test"]
+}
