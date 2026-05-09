@@ -1,0 +1,29 @@
+{
+	"extends": "@gnosis/config/tsconfig.base.json",
+	"compilerOptions": {
+		"target": "ES2022",
+		"useDefineForClassFields": true,
+		"lib": ["ES2022", "DOM", "DOM.Iterable"],
+		"module": "ESNext",
+		"moduleResolution": "Bundler",
+		"jsx": "react-jsx",
+		"strict": true,
+		"skipLibCheck": true,
+		"noEmit": true,
+		"allowImportingTsExtensions": true,
+		"resolveJsonModule": true,
+		"isolatedModules": true,
+		"esModuleInterop": true,
+		"baseUrl": ".",
+		"paths": {
+			"@gnosis/ui/*": ["../../packages/ui/src/*"],
+			"@gnosis/core": ["../../packages/core/src"],
+			"@gnosis/editor": ["../../packages/editor/src"],
+			"@gnosis/views": ["../../packages/views/src"],
+			"@gnosis/db": ["../../packages/db/src"],
+			"@gnosis/db/migrations": ["../../packages/db/src/migrations.ts"]
+		}
+	},
+	"include": ["src", "vite.config.ts"],
+	"references": [{ "path": "./tsconfig.node.json" }]
+}

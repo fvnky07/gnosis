@@ -1,3 +1,3 @@
 {
-  "extends": "@gnosis/config/tsconfig.base.json"
+	"extends": "@gnosis/config/tsconfig.base.json"
 }

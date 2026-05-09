@@ -1,0 +1,8 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "enables the default permissions and references gnosis plugin capabilities",
+  "windows": ["main"],
+  "permissions": ["core:default"],
+  "platforms": ["macOS", "windows", "linux"]
+}
