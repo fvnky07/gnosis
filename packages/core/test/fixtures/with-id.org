@@ -1,0 +1,16 @@
+#+TITLE: Vault with IDs
+#+FILETAGS: :file:tag:
+
+* TODO already minted :work:
+:PROPERTIES:
+:ID:       01J9KEEPONE
+:CREATED:  [2026-05-06 Wed 10:13]
+:END:
+SCHEDULED: <2026-05-07 Thu 09:00>
+this block is fully formed
+
+** child :urgent:
+:PROPERTIES:
+:ID:       01J9KEEPCHD
+:END:
+also has an id

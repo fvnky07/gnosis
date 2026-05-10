@@ -1,0 +1,15 @@
+#+TITLE: Simple
+
+* TODO buy milk
+body line 1
+body line 2
+
+** child note
+nested body
+
+* DONE [#A] write parser :work:
+:PROPERTIES:
+:CREATED:  [2026-05-06 Wed 10:13]
+:END:
+SCHEDULED: <2026-05-07 Thu 09:00>
+done with the parser
