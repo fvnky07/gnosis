@@ -11,6 +11,15 @@ import type { Block, NewBlock } from "./schema";
  * via `@gnosis/db/store`, and we don't want better-sqlite3 stubs leaking
  * into the browser build.
  */
+
+export interface FtsResult {
+	id: string;
+	filePath: string;
+	headlineRaw: string;
+	snippet: string;
+	rank: number;
+}
+
 export interface BlockStore {
 	/**
 	 * Replace every block row associated with `filePath`. Atomic from the
@@ -24,4 +33,6 @@ export interface BlockStore {
 	listBlockIdsByFile(filePath: string): Promise<string[]>;
 	/** Return every block in the store. Convenience for tests + tooling. */
 	getAllBlocks(): Promise<Block[]>;
+	/** Full-text search over headline_raw and body via the blocks_fts virtual table. */
+	searchBlocks(query: string, limit?: number): Promise<FtsResult[]>;
 }
