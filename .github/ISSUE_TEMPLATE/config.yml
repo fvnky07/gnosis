@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Roadmap and deferred issues
+    url: https://github.com/fvnky07/gnosis/blob/main/planning/14-roadmap-and-deferred.md
+    about: Phase plan and the backlog of explicitly-deferred work.
+  - name: Architecture & design docs
+    url: https://github.com/fvnky07/gnosis/tree/main/planning
+    about: Read the planning docs before opening a "why doesn't gnosis do X" issue.

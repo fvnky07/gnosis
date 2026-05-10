@@ -6,11 +6,13 @@ import {
 } from "@gnosis/views";
 import { useState } from "react";
 
-type ViewKind = "journal" | "agenda" | "todos";
+export type ViewKind = "journal" | "agenda" | "todos";
 
 interface RightSidebarProps {
 	blocks: ViewBlock[];
 	defaultView?: ViewKind;
+	view?: ViewKind;
+	onViewChange?: (v: ViewKind) => void;
 	onClose?(): void;
 	className?: string;
 }
@@ -27,17 +29,25 @@ const TABS: { id: ViewKind; label: string }[] = [
  * view; collapsing/expanding the whole pane is the parent shell's job
  * (drag handle + `Cmd+Shift+B` toggle).
  *
- * Real fetching wires up alongside `indexEventBus` exposure in 7b/8b;
- * this component is prop-driven so the host can pass either real
- * indexer data or a static fixture.
+ * Pass `view` + `onViewChange` for controlled mode (host owns the
+ * active view, e.g. so palette `:view todos` and leader `Space v t`
+ * can drive it). Omit them and the component falls back to internal
+ * state seeded with `defaultView`.
  */
 export function RightSidebar({
 	blocks,
 	defaultView = "journal",
+	view,
+	onViewChange,
 	onClose,
 	className,
 }: RightSidebarProps) {
-	const [active, setActive] = useState<ViewKind>(defaultView);
+	const [internalActive, setInternalActive] = useState<ViewKind>(defaultView);
+	const active = view ?? internalActive;
+	const setActive = (next: ViewKind) => {
+		if (onViewChange) onViewChange(next);
+		else setInternalActive(next);
+	};
 	return (
 		<aside
 			className={`flex h-full flex-col border-border border-l bg-background ${className ?? ""}`}

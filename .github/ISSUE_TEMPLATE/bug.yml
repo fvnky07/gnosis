@@ -1,0 +1,68 @@
+name: Bug report
+description: Something broke. File-corruption / data-loss bugs are highest priority.
+title: "bug: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. **If this involves data loss, vault corruption,
+        or a destructive write to your `.org` files, lead with that** — those
+        bugs jump the queue.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: One paragraph. Skip the build-up.
+      placeholder: "Captured a journal entry; the daily file lost an existing block."
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Numbered list. Include the vault state before the action.
+      placeholder: |
+        1. Pick vault `~/notes`
+        2. Cmd+K → `j hello`
+        3. Inspect `daily/2026-05-10.org`
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: gnosis version / commit SHA
+      placeholder: "0.1.0 or 711998d"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: OS
+      options:
+        - macOS
+        - Linux
+        - Windows
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: |
+        From `$APP_DATA/logs/gnosis.log`. Redact paths if sensitive.
+      render: shell
+  - type: checkboxes
+    id: data-loss
+    attributes:
+      label: Data-loss flag
+      options:
+        - label: This bug caused data loss or corrupted a `.org` file.
+          required: false

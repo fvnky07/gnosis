@@ -8,6 +8,22 @@
  * Paths are relative to {@link Vault.rootPath} and use forward slashes
  * regardless of host OS — adapters normalize at the IO boundary.
  */
+
+/**
+ * Thrown by {@link Vault.read} when the requested file does not exist.
+ * Callers that need to distinguish "missing file" from other IO errors
+ * (e.g. {@link captureToVault}) should catch this type specifically and
+ * rethrow anything else.
+ */
+export class VaultNotFoundError extends Error {
+	readonly path: string;
+	constructor(path: string) {
+		super(`Vault: file not found: ${path}`);
+		this.name = "VaultNotFoundError";
+		this.path = path;
+	}
+}
+
 export interface FileMeta {
 	/** Path relative to the vault root, forward-slash form. */
 	path: string;

@@ -20,6 +20,10 @@ export default defineConfig({
 			"@gnosis/editor": path.resolve(__dirname, "../../packages/editor/src"),
 			"@gnosis/palette": path.resolve(__dirname, "../../packages/palette/src"),
 			"@gnosis/views": path.resolve(__dirname, "../../packages/views/src"),
+			"@gnosis/vim-runtime": path.resolve(
+				__dirname,
+				"../../packages/vim-runtime/src",
+			),
 			"@gnosis/db/migrations": path.resolve(
 				__dirname,
 				"../../packages/db/src/migrations.ts",

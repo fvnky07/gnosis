@@ -12,6 +12,12 @@ const CTX: PaletteCtx = {
 		captureNote: async () => {},
 		openView: async () => {},
 		runCommand: async () => {},
+		listFiles: async () => [],
+		searchBlocks: async () => [],
+		listOutline: async () => [],
+		listTabs: async () => [],
+		openFile: async () => {},
+		openBlock: async () => {},
 	},
 };
 

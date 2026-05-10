@@ -1,6 +1,8 @@
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { buildBaseExtensions } from "./extensions";
+import { vimModeWatcher } from "./mode-observer";
+import { buildOrgMotions } from "./motions";
 import type { BufferProps } from "./types";
 import { buildVimExtensions } from "./vim";
 
@@ -25,7 +27,14 @@ export function createEditor(
 	parent: HTMLElement,
 	props: BufferProps,
 ): EditorView {
-	const { initialDoc, vimEnabled = true, onChange, onScroll } = props;
+	const {
+		initialDoc,
+		vimEnabled = true,
+		onChange,
+		onScroll,
+		vimHostBindings,
+		onVimModeChange,
+	} = props;
 
 	let writeTimer: ReturnType<typeof setTimeout> | null = null;
 	let scrollTimer: ReturnType<typeof setTimeout> | null = null;
@@ -52,7 +61,9 @@ export function createEditor(
 	// vim() must precede the keymap of the base extensions so cm-vim's keys win
 	// over default editor bindings — cm-vim's docs require this ordering.
 	const extensions = [
-		...(vimEnabled ? buildVimExtensions() : []),
+		...(vimEnabled ? buildVimExtensions(vimHostBindings) : []),
+		...(vimEnabled ? buildOrgMotions() : []),
+		...(vimEnabled && onVimModeChange ? [vimModeWatcher(onVimModeChange)] : []),
 		...buildBaseExtensions(),
 		docChangeListener,
 	];

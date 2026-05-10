@@ -1,4 +1,19 @@
-import { Command } from "cmdk";
+import {
+	Command,
+	CommandEmpty,
+	CommandGroup,
+	CommandInput,
+	CommandItem,
+	CommandList,
+} from "@gnosis/ui/components/command";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+} from "@gnosis/ui/components/dialog";
+import { cn } from "@gnosis/ui/lib/utils";
 import {
 	type ReactNode,
 	useCallback,
@@ -29,20 +44,23 @@ interface ProviderResult {
 	items: PaletteItem[];
 }
 
+const PROVIDER_LABELS: Record<string, string> = {
+	help: "Help",
+	capture: "Capture",
+	view: "Views",
+	"recent-files": "Recent",
+	commands: "Commands",
+};
+
 /**
- * The CommandPalette React component. Wraps cmdk's headless `Command`
- * primitive and threads our provider engine through it. Filtering is
- * disabled at the cmdk level — providers do their own matching/scoring;
- * cmdk just renders + arrow-key cycles.
+ * The CommandPalette React component. Wraps cmdk via the shadcn `Command`
+ * primitives, mounted inside a shadcn radix `Dialog` so the popup gets
+ * focus trap, scrim click-to-close, and Esc handling for free.
  *
- * The palette is uncontrolled wrt `open` from the host's perspective: the
- * host opens it (e.g. on `Cmd+K`) and the palette emits `onClose` when the
- * user submits, presses `Esc` from the root mode, or clicks outside.
- *
- * The full INSERT/LIST cursor behavior, sub-action lists, and preview pane
- * land alongside the FTS5 / `fileSearch` provider in phase 6b. The MVP
- * here ships the engine + the cmdk integration so vim, capture, view,
- * and `>` commands work end-to-end.
+ * Filtering is disabled at the cmdk level — providers do their own
+ * matching/scoring; cmdk just renders + arrow-key cycles. Esc is
+ * intercepted: pop the mode stack first; only when the stack is empty
+ * does it bubble to the dialog close.
  */
 export function CommandPalette({
 	registry,
@@ -107,52 +125,74 @@ export function CommandPalette({
 		[results, registry, ctx, onClose, frecency, onFrecencyChange],
 	);
 
-	if (!state.open) return null;
-
 	return (
-		<Command
-			label="Command palette"
-			shouldFilter={false}
-			loop
-			className={className}
-			onKeyDown={(event) => {
-				if (event.key === "Escape") {
-					event.preventDefault();
-					if (state.modeStack.length === 0) onClose();
-					else dispatch({ type: "escape", total: flatItems.length });
-				}
+		<Dialog
+			open={open}
+			onOpenChange={(next) => {
+				if (!next) onClose();
 			}}
 		>
-			<Command.Input
-				autoFocus
-				value={state.query}
-				onValueChange={(value) => dispatch({ type: "set-query", query: value })}
-				placeholder="Type a command, > for commands, j/t/n to capture, v to open a view, ? for help…"
-			/>
-			<Command.List>
-				{flatItems.length === 0 ? (
-					<Command.Empty>{renderEmpty(state)}</Command.Empty>
-				) : null}
-				{results.map((bucket) => (
-					<Command.Group key={bucket.providerId} heading={bucket.providerId}>
-						{bucket.items.map((item) => (
-							<Command.Item
-								key={item.id}
-								value={item.id}
-								onSelect={(value) => {
-									void handleSelect(value);
-								}}
+			<DialogContent
+				showCloseButton={false}
+				onEscapeKeyDown={(event) => {
+					if (state.modeStack.length > 0) {
+						event.preventDefault();
+						dispatch({ type: "escape", total: flatItems.length });
+					}
+				}}
+				className={cn(
+					"data-[state=open]:slide-in-from-top-4 top-[12vh] left-1/2 max-w-xl translate-x-[-50%] translate-y-0 gap-0 overflow-hidden rounded-lg border-border bg-popover p-0 text-popover-foreground shadow-2xl",
+					className,
+				)}
+			>
+				<DialogHeader className="sr-only">
+					<DialogTitle>Command palette</DialogTitle>
+					<DialogDescription>
+						Search files, commands, views, and capture targets.
+					</DialogDescription>
+				</DialogHeader>
+				<Command label="Command palette" shouldFilter={false} loop>
+					<CommandInput
+						autoFocus
+						value={state.query}
+						onValueChange={(value) =>
+							dispatch({ type: "set-query", query: value })
+						}
+						placeholder="Type to search · > commands · f files · b blocks · j/t/n capture · v views · ? help"
+					/>
+					<CommandList>
+						{flatItems.length === 0 ? (
+							<CommandEmpty>{renderEmpty(state)}</CommandEmpty>
+						) : null}
+						{results.map((bucket) => (
+							<CommandGroup
+								key={bucket.providerId}
+								heading={
+									PROVIDER_LABELS[bucket.providerId] ?? bucket.providerId
+								}
 							>
-								<span>{item.label}</span>
-								{item.detail ? (
-									<span className="ml-2 opacity-60">{item.detail}</span>
-								) : null}
-							</Command.Item>
+								{bucket.items.map((item) => (
+									<CommandItem
+										key={item.id}
+										value={item.id}
+										onSelect={(value) => {
+											void handleSelect(value);
+										}}
+									>
+										<span className="truncate">{item.label}</span>
+										{item.detail ? (
+											<span className="ml-auto truncate text-muted-foreground text-xs">
+												{item.detail}
+											</span>
+										) : null}
+									</CommandItem>
+								))}
+							</CommandGroup>
 						))}
-					</Command.Group>
-				))}
-			</Command.List>
-		</Command>
+					</CommandList>
+				</Command>
+			</DialogContent>
+		</Dialog>
 	);
 }
 

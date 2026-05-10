@@ -9,7 +9,7 @@ import {
 	type NewBlock,
 	schemaVersion,
 } from "./schema";
-import type { BlockStore } from "./store";
+import type { BlockStore, FtsResult } from "./store";
 
 export type GnosisDb = ReturnType<typeof drizzle>;
 
@@ -40,6 +40,7 @@ export function applyMigrations(db: GnosisDb) {
  * `BlockStore` interface from `@gnosis/db/store`.
  */
 export function createDrizzleBlockStore(db: GnosisDb): BlockStore {
+	const sqlite = (db as GnosisDb & { $client: Database.Database }).$client;
 	return {
 		async upsertFileBlocks(filePath: string, rows: NewBlock[]): Promise<void> {
 			db.delete(blocks).where(eq(blocks.filePath, filePath)).run();
@@ -60,6 +61,33 @@ export function createDrizzleBlockStore(db: GnosisDb): BlockStore {
 		},
 		async getAllBlocks(): Promise<Block[]> {
 			return db.select().from(blocks).all();
+		},
+		async searchBlocks(query: string, limit = 50): Promise<FtsResult[]> {
+			const trimmed = query.trim();
+			if (!trimmed) return [];
+			const sanitized = trimmed.replace(/"/g, '""');
+			const rows = sqlite
+				.prepare<
+					[string, number],
+					{
+						id: string;
+						filePath: string;
+						headlineRaw: string;
+						snippet: string;
+						rank: number;
+					}
+				>(
+					`SELECT b.id, b.file_path AS filePath, b.headline_raw AS headlineRaw,
+					        snippet(blocks_fts, 1, '<mark>', '</mark>', '…', 32) AS snippet,
+					        bm25(blocks_fts) AS rank
+					 FROM blocks_fts
+					 JOIN blocks b ON b.rowid = blocks_fts.rowid
+					 WHERE blocks_fts MATCH ?
+					 ORDER BY rank
+					 LIMIT ?`,
+				)
+				.all(sanitized, limit);
+			return rows;
 		},
 	};
 }
