@@ -259,10 +259,19 @@
     "packages/views": {
       "name": "@gnosis/views",
       "version": "0.0.0",
+      "dependencies": {
+        "@gnosis/db": "workspace:*",
+        "@gnosis/editor": "workspace:*",
+      },
       "devDependencies": {
         "@gnosis/config": "workspace:*",
+        "@types/react": "^19.2.10",
+        "react": "^19.2.3",
         "typescript": "^6",
         "vitest": "^3",
+      },
+      "peerDependencies": {
+        "react": ">=19",
       },
     },
   },

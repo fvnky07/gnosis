@@ -12,8 +12,17 @@
 		"check-types": "tsc --noEmit",
 		"test": "vitest run --passWithNoTests"
 	},
+	"dependencies": {
+		"@gnosis/db": "workspace:*",
+		"@gnosis/editor": "workspace:*"
+	},
+	"peerDependencies": {
+		"react": ">=19"
+	},
 	"devDependencies": {
 		"@gnosis/config": "workspace:*",
+		"@types/react": "^19.2.10",
+		"react": "^19.2.3",
 		"typescript": "^6",
 		"vitest": "^3"
 	}
