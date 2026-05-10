@@ -6,6 +6,13 @@ import {
 	CommandItem,
 	CommandList,
 } from "@gnosis/ui/components/command";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+} from "@gnosis/ui/components/dialog";
 import { cn } from "@gnosis/ui/lib/utils";
 import {
 	type ReactNode,
@@ -47,15 +54,13 @@ const PROVIDER_LABELS: Record<string, string> = {
 
 /**
  * The CommandPalette React component. Wraps cmdk via the shadcn `Command`
- * primitives so the popup matches the rest of the UI: backdrop, rounded
- * popover, sectioned groups, keyboard cycling, accent on the selected row.
+ * primitives, mounted inside a shadcn radix `Dialog` so the popup gets
+ * focus trap, scrim click-to-close, and Esc handling for free.
  *
  * Filtering is disabled at the cmdk level — providers do their own
- * matching/scoring; cmdk just renders + arrow-key cycles.
- *
- * The host opens it (e.g. on `Cmd+K`) and the palette emits `onClose` when
- * the user submits, presses `Esc` from the root mode, or clicks the
- * backdrop.
+ * matching/scoring; cmdk just renders + arrow-key cycles. Esc is
+ * intercepted: pop the mode stack first; only when the stack is empty
+ * does it bubble to the dialog close.
  */
 export function CommandPalette({
 	registry,
@@ -120,73 +125,74 @@ export function CommandPalette({
 		[results, registry, ctx, onClose, frecency, onFrecencyChange],
 	);
 
-	if (!state.open) return null;
-
 	return (
-		<div
-			data-slot="command-palette-root"
-			className="fixed inset-0 z-50 flex items-start justify-center"
+		<Dialog
+			open={open}
+			onOpenChange={(next) => {
+				if (!next) onClose();
+			}}
 		>
-			<button
-				type="button"
-				aria-label="Close palette"
-				onClick={onClose}
-				className="absolute inset-0 cursor-default bg-black/40 backdrop-blur-sm"
-			/>
-			<Command
-				label="Command palette"
-				shouldFilter={false}
-				loop
-				className={cn(
-					"relative z-10 mt-[12vh] w-full max-w-xl overflow-hidden rounded-lg border border-border bg-popover text-popover-foreground shadow-2xl",
-					className,
-				)}
-				onKeyDown={(event) => {
-					if (event.key === "Escape") {
+			<DialogContent
+				showCloseButton={false}
+				onEscapeKeyDown={(event) => {
+					if (state.modeStack.length > 0) {
 						event.preventDefault();
-						if (state.modeStack.length === 0) onClose();
-						else dispatch({ type: "escape", total: flatItems.length });
+						dispatch({ type: "escape", total: flatItems.length });
 					}
 				}}
+				className={cn(
+					"data-[state=open]:slide-in-from-top-4 top-[12vh] left-1/2 max-w-xl translate-x-[-50%] translate-y-0 gap-0 overflow-hidden rounded-lg border-border bg-popover p-0 text-popover-foreground shadow-2xl",
+					className,
+				)}
 			>
-				<CommandInput
-					autoFocus
-					value={state.query}
-					onValueChange={(value) =>
-						dispatch({ type: "set-query", query: value })
-					}
-					placeholder="Type to search · > commands · f files · b blocks · j/t/n capture · v views · ? help"
-				/>
-				<CommandList>
-					{flatItems.length === 0 ? (
-						<CommandEmpty>{renderEmpty(state)}</CommandEmpty>
-					) : null}
-					{results.map((bucket) => (
-						<CommandGroup
-							key={bucket.providerId}
-							heading={PROVIDER_LABELS[bucket.providerId] ?? bucket.providerId}
-						>
-							{bucket.items.map((item) => (
-								<CommandItem
-									key={item.id}
-									value={item.id}
-									onSelect={(value) => {
-										void handleSelect(value);
-									}}
-								>
-									<span className="truncate">{item.label}</span>
-									{item.detail ? (
-										<span className="ml-auto truncate text-muted-foreground text-xs">
-											{item.detail}
-										</span>
-									) : null}
-								</CommandItem>
-							))}
-						</CommandGroup>
-					))}
-				</CommandList>
-			</Command>
-		</div>
+				<DialogHeader className="sr-only">
+					<DialogTitle>Command palette</DialogTitle>
+					<DialogDescription>
+						Search files, commands, views, and capture targets.
+					</DialogDescription>
+				</DialogHeader>
+				<Command label="Command palette" shouldFilter={false} loop>
+					<CommandInput
+						autoFocus
+						value={state.query}
+						onValueChange={(value) =>
+							dispatch({ type: "set-query", query: value })
+						}
+						placeholder="Type to search · > commands · f files · b blocks · j/t/n capture · v views · ? help"
+					/>
+					<CommandList>
+						{flatItems.length === 0 ? (
+							<CommandEmpty>{renderEmpty(state)}</CommandEmpty>
+						) : null}
+						{results.map((bucket) => (
+							<CommandGroup
+								key={bucket.providerId}
+								heading={
+									PROVIDER_LABELS[bucket.providerId] ?? bucket.providerId
+								}
+							>
+								{bucket.items.map((item) => (
+									<CommandItem
+										key={item.id}
+										value={item.id}
+										onSelect={(value) => {
+											void handleSelect(value);
+										}}
+									>
+										<span className="truncate">{item.label}</span>
+										{item.detail ? (
+											<span className="ml-auto truncate text-muted-foreground text-xs">
+												{item.detail}
+											</span>
+										) : null}
+									</CommandItem>
+								))}
+							</CommandGroup>
+						))}
+					</CommandList>
+				</Command>
+			</DialogContent>
+		</Dialog>
 	);
 }
 
