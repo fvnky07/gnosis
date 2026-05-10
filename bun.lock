@@ -151,6 +151,7 @@
       "name": "@gnosis/core",
       "version": "0.0.0",
       "dependencies": {
+        "@gnosis/db": "workspace:*",
         "ulid": "^3",
       },
       "devDependencies": {
