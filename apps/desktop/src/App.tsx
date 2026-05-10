@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { EditorPane } from "./EditorPane";
 import { openDb, readSchemaVersion } from "./lib/db";
 import { error as logError, info as logInfo } from "./lib/log";
 import { ensureVaultPath } from "./lib/vault";
@@ -22,6 +23,25 @@ function isInsideTauri(): boolean {
 	};
 	return Boolean(w.__TAURI_INTERNALS__ ?? w.__TAURI__);
 }
+
+const SAMPLE_ORG = `#+TITLE: Welcome to gnosis
+
+* TODO try vim
+:PROPERTIES:
+:ID:       01J9DEMO0001
+:END:
+SCHEDULED: <2026-05-10 Sun>
+press \`Esc\` then \`i\` to enter INSERT mode and edit. Use \`:\` for ex commands.
+
+* DONE [#A] sanity check :demo:
+:PROPERTIES:
+:ID:       01J9DEMO0002
+:END:
+this is a static demo doc. file IO and indexer wiring land in the next slice.
+
+** child block :nested:
+tag inheritance demo
+`;
 
 export default function App() {
 	const [status, setStatus] = useState<BootstrapStatus>({ kind: "starting" });
@@ -61,6 +81,31 @@ export default function App() {
 		};
 	}, []);
 
+	if (status.kind === "ready") {
+		return (
+			<div className="flex h-dvh w-dvw flex-col bg-background text-foreground">
+				<header className="flex items-baseline justify-between border-border border-b px-4 py-2 text-xs">
+					<span className="font-semibold">gnosis</span>
+					<span className="text-muted-foreground">
+						<code className="font-mono">{status.vaultPath}</code>
+						{" · "}
+						schema v{status.schemaVersion ?? "?"}
+					</span>
+				</header>
+				<EditorPane
+					bufferId="demo"
+					filePath="demo.org"
+					initialDoc={SAMPLE_ORG}
+					vimEnabled
+					onChange={() => {
+						// File-IO write-back wires up in the next slice.
+					}}
+					className="flex-1 overflow-auto"
+				/>
+			</div>
+		);
+	}
+
 	return (
 		<div className="flex h-dvh w-dvw items-center justify-center bg-background text-foreground">
 			<div className="max-w-md text-center">
@@ -95,16 +140,7 @@ function renderStatus(status: BootstrapStatus) {
 				</span>
 			);
 		case "ready":
-			return (
-				<div className="space-y-1">
-					<p>
-						Vault: <code className="font-mono text-xs">{status.vaultPath}</code>
-					</p>
-					<p className="text-muted-foreground text-xs">
-						SQLite schema v{status.schemaVersion ?? "?"} ready.
-					</p>
-				</div>
-			);
+			return null;
 		case "error":
 			return (
 				<span className="text-red-500">Bootstrap error: {status.message}</span>

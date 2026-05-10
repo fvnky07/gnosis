@@ -1,2 +1,46 @@
 @import "tailwindcss";
 @import "../../../packages/ui/src/styles/globals.css";
+
+/* CodeMirror sizing: fill the parent container provided by EditorPane. */
+.cm-editor {
+	height: 100%;
+	font-family:
+		ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono",
+		monospace;
+	font-size: 13px;
+}
+.cm-editor.cm-focused {
+	outline: none;
+}
+.cm-scroller {
+	font-family: inherit;
+}
+
+/* Org-flavored token colors used by both the editor decoration plugin and
+   the BlockSnippet React component. Tuned for the default light + dark
+   shadcn themes via CSS variables; muted-foreground is the fallback. */
+.cm-gnosis-todo {
+	color: oklch(0.62 0.18 25);
+	font-weight: 600;
+}
+.cm-gnosis-priority {
+	color: oklch(0.66 0.16 60);
+	font-weight: 600;
+}
+.cm-gnosis-tag {
+	color: oklch(0.6 0.12 220);
+}
+.cm-gnosis-ts-active {
+	color: oklch(0.55 0.13 150);
+}
+.cm-gnosis-ts-inactive {
+	color: oklch(0.55 0.05 150);
+}
+.cm-gnosis-drawer {
+	color: oklch(0.55 0 0);
+	font-style: italic;
+}
+.cm-gnosis-keyword {
+	color: oklch(0.55 0.1 290);
+	font-weight: 500;
+}
