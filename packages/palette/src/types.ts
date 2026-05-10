@@ -84,6 +84,12 @@ export interface PaletteItem {
 	label: string;
 	detail?: string;
 	icon?: ReactNode;
+	/**
+	 * Optional group label. When present the palette UI groups items under
+	 * this heading instead of using the provider id. Used by the root menu
+	 * to render Navigation / Views / Capture / Actions / Help sections.
+	 */
+	section?: string;
 	meta?: Record<string, unknown>;
 }
 

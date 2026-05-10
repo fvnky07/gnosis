@@ -5,5 +5,6 @@ export * from "./file";
 export * from "./help";
 export * from "./outline";
 export * from "./recent";
+export * from "./root-menu";
 export * from "./tabs";
 export * from "./view";
