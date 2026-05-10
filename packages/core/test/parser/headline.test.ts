@@ -89,4 +89,17 @@ describe("parseHeadline", () => {
 			tags: [],
 		});
 	});
+
+	it("parses unicode tags (Japanese, Cyrillic)", () => {
+		expect(parseHeadline("* 牛乳を買う :買い物:")).toEqual({
+			level: 1,
+			title: "牛乳を買う",
+			tags: ["買い物"],
+		});
+		expect(parseHeadline("* refactor :работа:срочно:")).toEqual({
+			level: 1,
+			title: "refactor",
+			tags: ["работа", "срочно"],
+		});
+	});
 });
