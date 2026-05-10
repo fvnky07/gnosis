@@ -1,4 +1,12 @@
-import { Command } from "cmdk";
+import {
+	Command,
+	CommandEmpty,
+	CommandGroup,
+	CommandInput,
+	CommandItem,
+	CommandList,
+} from "@gnosis/ui/components/command";
+import { cn } from "@gnosis/ui/lib/utils";
 import {
 	type ReactNode,
 	useCallback,
@@ -29,20 +37,25 @@ interface ProviderResult {
 	items: PaletteItem[];
 }
 
+const PROVIDER_LABELS: Record<string, string> = {
+	help: "Help",
+	capture: "Capture",
+	view: "Views",
+	"recent-files": "Recent",
+	commands: "Commands",
+};
+
 /**
- * The CommandPalette React component. Wraps cmdk's headless `Command`
- * primitive and threads our provider engine through it. Filtering is
- * disabled at the cmdk level — providers do their own matching/scoring;
- * cmdk just renders + arrow-key cycles.
+ * The CommandPalette React component. Wraps cmdk via the shadcn `Command`
+ * primitives so the popup matches the rest of the UI: backdrop, rounded
+ * popover, sectioned groups, keyboard cycling, accent on the selected row.
  *
- * The palette is uncontrolled wrt `open` from the host's perspective: the
- * host opens it (e.g. on `Cmd+K`) and the palette emits `onClose` when the
- * user submits, presses `Esc` from the root mode, or clicks outside.
+ * Filtering is disabled at the cmdk level — providers do their own
+ * matching/scoring; cmdk just renders + arrow-key cycles.
  *
- * The full INSERT/LIST cursor behavior, sub-action lists, and preview pane
- * land alongside the FTS5 / `fileSearch` provider in phase 6b. The MVP
- * here ships the engine + the cmdk integration so vim, capture, view,
- * and `>` commands work end-to-end.
+ * The host opens it (e.g. on `Cmd+K`) and the palette emits `onClose` when
+ * the user submits, presses `Esc` from the root mode, or clicks the
+ * backdrop.
  */
 export function CommandPalette({
 	registry,
@@ -110,49 +123,70 @@ export function CommandPalette({
 	if (!state.open) return null;
 
 	return (
-		<Command
-			label="Command palette"
-			shouldFilter={false}
-			loop
-			className={className}
-			onKeyDown={(event) => {
-				if (event.key === "Escape") {
-					event.preventDefault();
-					if (state.modeStack.length === 0) onClose();
-					else dispatch({ type: "escape", total: flatItems.length });
-				}
-			}}
+		<div
+			data-slot="command-palette-root"
+			className="fixed inset-0 z-50 flex items-start justify-center"
 		>
-			<Command.Input
-				autoFocus
-				value={state.query}
-				onValueChange={(value) => dispatch({ type: "set-query", query: value })}
-				placeholder="Type a command, > for commands, j/t/n to capture, v to open a view, ? for help…"
+			<button
+				type="button"
+				aria-label="Close palette"
+				onClick={onClose}
+				className="absolute inset-0 cursor-default bg-black/40 backdrop-blur-sm"
 			/>
-			<Command.List>
-				{flatItems.length === 0 ? (
-					<Command.Empty>{renderEmpty(state)}</Command.Empty>
-				) : null}
-				{results.map((bucket) => (
-					<Command.Group key={bucket.providerId} heading={bucket.providerId}>
-						{bucket.items.map((item) => (
-							<Command.Item
-								key={item.id}
-								value={item.id}
-								onSelect={(value) => {
-									void handleSelect(value);
-								}}
-							>
-								<span>{item.label}</span>
-								{item.detail ? (
-									<span className="ml-2 opacity-60">{item.detail}</span>
-								) : null}
-							</Command.Item>
-						))}
-					</Command.Group>
-				))}
-			</Command.List>
-		</Command>
+			<Command
+				label="Command palette"
+				shouldFilter={false}
+				loop
+				className={cn(
+					"relative z-10 mt-[12vh] w-full max-w-xl overflow-hidden rounded-lg border border-border bg-popover text-popover-foreground shadow-2xl",
+					className,
+				)}
+				onKeyDown={(event) => {
+					if (event.key === "Escape") {
+						event.preventDefault();
+						if (state.modeStack.length === 0) onClose();
+						else dispatch({ type: "escape", total: flatItems.length });
+					}
+				}}
+			>
+				<CommandInput
+					autoFocus
+					value={state.query}
+					onValueChange={(value) =>
+						dispatch({ type: "set-query", query: value })
+					}
+					placeholder="Type to search · > commands · f files · b blocks · j/t/n capture · v views · ? help"
+				/>
+				<CommandList>
+					{flatItems.length === 0 ? (
+						<CommandEmpty>{renderEmpty(state)}</CommandEmpty>
+					) : null}
+					{results.map((bucket) => (
+						<CommandGroup
+							key={bucket.providerId}
+							heading={PROVIDER_LABELS[bucket.providerId] ?? bucket.providerId}
+						>
+							{bucket.items.map((item) => (
+								<CommandItem
+									key={item.id}
+									value={item.id}
+									onSelect={(value) => {
+										void handleSelect(value);
+									}}
+								>
+									<span className="truncate">{item.label}</span>
+									{item.detail ? (
+										<span className="ml-auto truncate text-muted-foreground text-xs">
+											{item.detail}
+										</span>
+									) : null}
+								</CommandItem>
+							))}
+						</CommandGroup>
+					))}
+				</CommandList>
+			</Command>
+		</div>
 	);
 }
 

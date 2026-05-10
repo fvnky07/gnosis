@@ -263,7 +263,6 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 				ctx={ctx}
 				open={open}
 				onClose={() => setOpen(false)}
-				className="fixed inset-x-0 top-20 mx-auto max-w-xl rounded-lg border border-border bg-popover text-popover-foreground shadow-2xl"
 			/>
 		</div>
 	);
