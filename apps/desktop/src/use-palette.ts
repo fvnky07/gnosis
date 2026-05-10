@@ -1,58 +1,87 @@
 import {
+	blockProvider,
 	CommandRegistry,
 	captureProvider,
 	createCommandsProvider,
+	fileProvider,
 	helpProvider,
+	outlineProvider,
 	PaletteRegistry,
 	recentFilesProvider,
+	tabsProvider,
 	viewProvider,
 } from "@gnosis/palette";
 import { useEffect, useMemo, useState } from "react";
 
+interface PaletteEngineOptions {
+	/** Called when the user runs `vault.refresh` from the command palette. */
+	onRefreshIndex: () => Promise<void>;
+	/** Called when the user runs `vim.toggle`. */
+	onToggleVim: () => void;
+	/** Called when the user runs `settings.open`. */
+	onOpenSettings: () => void;
+}
+
 /**
  * Wire the palette engine for `apps/desktop`. Returns the registry
- * pair plus an `open`/`setOpen` toggle bound to `Cmd+K` (or `Ctrl+K` on
- * non-mac). The host renders a `<CommandPalette>` driven by these.
+ * pair plus an `open`/`setOpen` toggle.
  *
- * Capture / view / runCommand executors are the real actions the palette
- * can perform. The MVP versions just log; phase 6b wires them through to
- * `@gnosis/core` `emitAppendBlock` + the `TauriVault` adapter.
+ * The global vim leader (Space Space) is the primary way to open the palette.
+ * Cmd+K is preserved here for muscle-memory; it does not conflict with leader
+ * because leader fires on bare Space outside editable surfaces.
  */
-export function usePaletteEngine() {
+export function usePaletteEngine({
+	onRefreshIndex,
+	onToggleVim,
+	onOpenSettings,
+}: PaletteEngineOptions) {
+	// biome-ignore lint/correctness/useExhaustiveDependencies: registries created once; option callbacks captured in command closures
 	const registries = useMemo(() => {
 		const palette = new PaletteRegistry();
 		const commands = new CommandRegistry();
+
 		palette.register(helpProvider);
 		palette.register(captureProvider);
 		palette.register(viewProvider);
 		palette.register(recentFilesProvider);
+		palette.register(fileProvider);
+		palette.register(blockProvider);
+		palette.register(outlineProvider);
+		palette.register(tabsProvider);
 		palette.register(createCommandsProvider(commands));
-		// Seed a minimal command set so `>` is not empty on first launch.
+
 		commands.register({
 			id: "vault.refresh",
 			label: "Refresh index",
 			aliases: ["reindex", "scan"],
 			run: async () => {
-				// Wired to indexer.cold() in the next slice.
+				await onRefreshIndex();
 			},
 		});
 		commands.register({
 			id: "settings.open",
 			label: "Open Settings",
 			aliases: ["preferences", "config"],
-			run: async () => {},
+			run: async () => {
+				onOpenSettings();
+			},
 		});
 		commands.register({
 			id: "vim.toggle",
 			label: "Toggle vim mode",
 			aliases: ["modal"],
-			run: async () => {},
+			run: async () => {
+				onToggleVim();
+			},
 		});
 		return { palette, commands };
 	}, []);
 
 	const [open, setOpen] = useState(false);
 
+	// Keep Cmd+K for muscle memory. Leader (Space Space) is the primary trigger
+	// and is wired in App.tsx via useGlobalVim — no conflict since leader only
+	// fires outside editable surfaces.
 	useEffect(() => {
 		function onKeyDown(event: KeyboardEvent) {
 			const isMac =

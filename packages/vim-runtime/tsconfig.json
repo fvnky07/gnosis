@@ -1,0 +1,14 @@
+{
+	"extends": "@gnosis/config/tsconfig.base.json",
+	"compilerOptions": {
+		"outDir": "dist",
+		"module": "ESNext",
+		"moduleResolution": "Bundler",
+		"jsx": "react-jsx",
+		"noEmit": true,
+		"strict": true,
+		"noUncheckedIndexedAccess": false,
+		"lib": ["ES2022", "DOM", "DOM.Iterable"]
+	},
+	"include": ["src", "test"]
+}
