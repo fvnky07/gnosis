@@ -10,6 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BlockDetailsPopover } from "./components/BlockDetailsPopover";
 import { ResizeHandle } from "./components/ResizeHandle";
 import { RightSidebar, type ViewKind } from "./components/RightSidebar";
+import { SettingsDialog } from "./components/SettingsDialog";
 import { StatusBar } from "./components/StatusBar";
 import { TabSwitcher } from "./components/TabSwitcher";
 import { EditorPane } from "./EditorPane";
@@ -156,6 +157,9 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 		[setMode],
 	);
 
+	// ── settings dialog ───────────────────────────────────────────────────────
+	const [settingsOpen, setSettingsOpen] = useState(false);
+
 	// ── palette engine ────────────────────────────────────────────────────────
 	const { palette, commands, open, setOpen } = usePaletteEngine({
 		onRefreshIndex: async () => {
@@ -166,7 +170,7 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 			// TODO: persist vim-mode preference to settings
 		},
 		onOpenSettings: () => {
-			// TODO: open settings panel
+			setSettingsOpen(true);
 		},
 	});
 
@@ -333,7 +337,7 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 				// TODO: open vault picker dialog
 			},
 			openSettings: async () => {
-				// TODO: open settings panel
+				setSettingsOpen(true);
 			},
 			reindex: async () => {
 				await runtime.coldIndex();
@@ -346,7 +350,7 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 				// TODO: multi-tab close
 			},
 		}),
-		[runtime, refresh, setOpen, openSidebarView],
+		[runtime, refresh, setOpen, openSidebarView, setSettingsOpen],
 	);
 
 	// ── layout state ──────────────────────────────────────────────────────────
@@ -362,6 +366,22 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 			if (summon && event.shiftKey && event.key.toLowerCase() === "b") {
 				event.preventDefault();
 				setSidebarOpen((prev) => !prev);
+			}
+		}
+		window.addEventListener("keydown", onKeyDown);
+		return () => {
+			window.removeEventListener("keydown", onKeyDown);
+		};
+	}, []);
+
+	useEffect(() => {
+		function onKeyDown(event: KeyboardEvent) {
+			const isMac =
+				typeof navigator !== "undefined" && /Mac/i.test(navigator.platform);
+			const summon = isMac ? event.metaKey : event.ctrlKey;
+			if (summon && event.key === ",") {
+				event.preventDefault();
+				setSettingsOpen((prev) => !prev);
 			}
 		}
 		window.addEventListener("keydown", onKeyDown);
@@ -489,7 +509,7 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 			<StatusBar
 				className={sidebarOpen ? "col-span-3" : "col-span-1"}
 				vaultPath={vaultPath}
-				indexStatus={`${activeBuffer.filePath} · schema v${schemaVersion ?? "?"} · ${indexNote} · ⌘K · ⌘⇧B`}
+				indexStatus={`${activeBuffer.filePath} · schema v${schemaVersion ?? "?"} · ${indexNote} · ⌘K · ⌘⇧B · ⌘,`}
 			/>
 			<CommandPalette
 				registry={palette}
@@ -498,6 +518,7 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 				open={open}
 				onClose={() => setOpen(false)}
 			/>
+			<SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
 			<BlockDetailsPopover
 				block={selectedBlock}
 				open={blockDetailsOpen}
