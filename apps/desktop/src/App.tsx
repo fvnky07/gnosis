@@ -1,12 +1,13 @@
 import { CommandPalette, type PaletteCtx } from "@gnosis/palette";
 import type { ViewBlock } from "@gnosis/views";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ResizeHandle } from "./components/ResizeHandle";
 import { RightSidebar } from "./components/RightSidebar";
 import { StatusBar } from "./components/StatusBar";
 import { EditorPane } from "./EditorPane";
 import { openDb, readSchemaVersion } from "./lib/db";
-import { error as logError, info as logInfo } from "./lib/log";
+import { error as logError, info as logInfo, warn as logWarn } from "./lib/log";
+import { createRuntime, type DesktopRuntime } from "./lib/runtime";
 import { ensureVaultPath } from "./lib/vault";
 import { usePaletteEngine } from "./use-palette";
 
@@ -116,20 +117,63 @@ interface ReadyShellProps {
 
 function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 	const { palette, commands, open, setOpen } = usePaletteEngine();
+	const runtimeRef = useRef<DesktopRuntime | null>(null);
+	if (runtimeRef.current === null) {
+		runtimeRef.current = createRuntime(vaultPath);
+	}
+	const runtime = runtimeRef.current;
+
+	const [blocks, setBlocks] = useState<ViewBlock[]>([]);
+	const [indexNote, setIndexNote] = useState<string>("indexing…");
+
+	const refresh = useCallback(async () => {
+		const next = await runtime.loadViewBlocks();
+		setBlocks(next);
+	}, [runtime]);
+
+	useEffect(() => {
+		let cancelled = false;
+		(async () => {
+			try {
+				const result = await runtime.coldIndex();
+				if (cancelled) return;
+				setIndexNote(
+					`indexed ${result.filesParsed} file${result.filesParsed === 1 ? "" : "s"} · idsMinted ${result.idsMinted}`,
+				);
+				await refresh();
+			} catch (err) {
+				const message = err instanceof Error ? err.message : String(err);
+				if (cancelled) return;
+				setIndexNote("index failed");
+				try {
+					await logWarn(`Cold index failed: ${message}`);
+				} catch {
+					console.warn("Cold index failed:", message);
+				}
+			}
+		})();
+		return () => {
+			cancelled = true;
+		};
+	}, [runtime, refresh]);
+
 	const ctx = useMemo<PaletteCtx>(
 		() => ({
 			vaultRoot: vaultPath,
-			activeFilePath: "demo.org",
+			activeFilePath: null,
 			selectedBlockId: null,
 			exec: {
 				captureJournal: async (text) => {
-					await logInfo(`palette: captureJournal — ${text}`);
+					await runtime.capture("journal", text);
+					await refresh();
 				},
 				captureTask: async (text) => {
-					await logInfo(`palette: captureTask — ${text}`);
+					await runtime.capture("task", text);
+					await refresh();
 				},
 				captureNote: async (text) => {
-					await logInfo(`palette: captureNote — ${text}`);
+					await runtime.capture("note", text);
+					await refresh();
 				},
 				openView: async (viewId) => {
 					await logInfo(`palette: openView — ${viewId}`);
@@ -141,13 +185,13 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 				},
 			},
 		}),
-		// `commands` is stable across renders; vaultPath changes only when the
-		// user re-picks a vault (which currently requires restart).
+		// `commands` and `runtime` are stable across renders; `refresh` is
+		// memoized on `runtime`. vaultPath changes only when the user re-picks.
 		// biome-ignore lint/correctness/useExhaustiveDependencies: see comment
-		[vaultPath, commands],
+		[vaultPath, commands, runtime, refresh],
 	);
 
-	const [sidebarOpen, setSidebarOpen] = useState(false);
+	const [sidebarOpen, setSidebarOpen] = useState(true);
 	const [rightWidth, setRightWidth] = useState(480);
 
 	useEffect(() => {
@@ -167,7 +211,6 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 	}, []);
 
 	const sidebarWidth = sidebarOpen ? rightWidth : 0;
-	const sampleBlocks: ViewBlock[] = [];
 
 	return (
 		<div
@@ -194,17 +237,14 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 						onWidthChange={setRightWidth}
 						onDoubleClick={() => setSidebarOpen(false)}
 					/>
-					<RightSidebar
-						blocks={sampleBlocks}
-						onClose={() => setSidebarOpen(false)}
-					/>
+					<RightSidebar blocks={blocks} onClose={() => setSidebarOpen(false)} />
 				</>
 			) : null}
 			<StatusBar
 				className={sidebarOpen ? "col-span-3" : "col-span-1"}
 				mode="INSERT"
 				vaultPath={vaultPath}
-				indexStatus={`schema v${schemaVersion ?? "?"} · ⌘K palette · ⌘⇧B sidebar`}
+				indexStatus={`schema v${schemaVersion ?? "?"} · ${indexNote} · ⌘K · ⌘⇧B`}
 			/>
 			<CommandPalette
 				registry={palette}
