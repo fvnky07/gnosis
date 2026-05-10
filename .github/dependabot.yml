@@ -1,0 +1,75 @@
+version: 2
+updates:
+  # npm / bun root manifest. Dependabot reads package.json semver ranges and
+  # opens PRs even though we lock with bun.lock — the maintainer runs
+  # `bun install` locally to refresh the lockfile.
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "08:00"
+      timezone: "Etc/UTC"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "javascript"
+    groups:
+      types:
+        patterns:
+          - "@types/*"
+      tauri-plugins:
+        patterns:
+          - "@tauri-apps/*"
+      tooling:
+        patterns:
+          - "biome"
+          - "@biomejs/*"
+          - "turbo"
+          - "typescript"
+          - "vite"
+          - "vitest"
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+
+  # Rust crates for the Tauri shell. The desktop app is the only Rust unit.
+  - package-ecosystem: "cargo"
+    directory: "/apps/desktop/src-tauri"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "08:00"
+      timezone: "Etc/UTC"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "rust"
+    groups:
+      tauri:
+        patterns:
+          - "tauri*"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+
+  # GitHub Actions used by workflows in `.github/workflows/*`.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "08:00"
+      timezone: "Etc/UTC"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"

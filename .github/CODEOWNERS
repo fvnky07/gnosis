@@ -1,0 +1,11 @@
+# Default owner for everything in this repo.
+*       @fvnky07
+
+# Planning is the canonical spec; changes there should always be reviewed.
+/planning/   @fvnky07
+
+# Release & infra surfaces — anything that affects how we ship or what
+# permissions the binary asks for.
+/.github/                          @fvnky07
+/apps/desktop/src-tauri/           @fvnky07
+/apps/desktop/src-tauri/capabilities/  @fvnky07
