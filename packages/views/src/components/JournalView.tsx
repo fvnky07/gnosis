@@ -1,6 +1,7 @@
 import { BlockSnippet } from "@gnosis/editor";
 import { groupJournalBlocksByDay } from "../lib/journal";
 import type { OnOpenBlock, ViewBlock } from "../types";
+import { EmptyState } from "./EmptyState";
 
 interface JournalViewProps {
 	blocks: ViewBlock[];
@@ -23,12 +24,19 @@ export function JournalView({
 	const groups = groupJournalBlocksByDay(blocks, now);
 	if (groups.length === 0) {
 		return (
-			<div
-				className={`flex h-full items-center justify-center text-muted-foreground text-sm ${className ?? ""}`}
-			>
-				No journal entries yet — try{" "}
-				<code className="ml-1 font-mono">j hello world</code> from the palette.
-			</div>
+			<EmptyState
+				className={className}
+				title="Capture your first journal entry"
+				body="Anything tagged :journal: lands here, grouped by day."
+				cta={
+					<>
+						<kbd className="rounded border border-border px-1.5 py-0.5 font-mono text-[11px]">
+							⌘K
+						</kbd>{" "}
+						→ <code className="font-mono">j hello world</code>
+					</>
+				}
+			/>
 		);
 	}
 	return (

@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { parseOrgDate, relativeDate } from "../lib/relative-date";
 import { buildKanbanColumns, sortTodosListMode } from "../lib/todos";
 import type { OnOpenBlock, ViewBlock } from "../types";
+import { EmptyState } from "./EmptyState";
 
 interface TodosViewProps {
 	blocks: ViewBlock[];
@@ -32,6 +33,9 @@ export function TodosView({
 		[blocks, referenceNow],
 	);
 	const list = useMemo(() => sortTodosListMode(blocks), [blocks]);
+	const hasTodos = blocks.some(
+		(b) => b.todoState === "TODO" || b.todoState === "DONE",
+	);
 
 	return (
 		<div className={`flex h-full flex-col text-sm ${className ?? ""}`}>
@@ -56,7 +60,20 @@ export function TodosView({
 					))}
 				</div>
 			</div>
-			{mode === "kanban" ? (
+			{!hasTodos ? (
+				<EmptyState
+					title="No TODOs yet"
+					body="Anything starting with TODO or DONE shows up here, kanban-style."
+					cta={
+						<>
+							<kbd className="rounded border border-border px-1.5 py-0.5 font-mono text-[11px]">
+								⌘K
+							</kbd>{" "}
+							→ <code className="font-mono">t buy milk</code>
+						</>
+					}
+				/>
+			) : mode === "kanban" ? (
 				<div className="flex h-full gap-2 overflow-auto p-2">
 					{kanban.map((column) => (
 						<section

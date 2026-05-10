@@ -1,6 +1,5 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "shadcn/tailwind.css";
 @source "../../../apps/**/*.{ts,tsx}";
 @source "../**/*.{ts,tsx}";
 
@@ -75,8 +74,135 @@
 	--sidebar-ring: oklch(0.556 0 0);
 }
 
+/*
+ * Honor the OS color scheme by default. Adding `.light` or `.dark` on
+ * `<html>` overrides this — the explicit class always wins over the
+ * media query because it lands later in the cascade with equal
+ * specificity (the `.dark` block above) or via `:root.light` below.
+ *
+ * Per `planning/16-design-system.md#dark-mode`.
+ */
+@media (prefers-color-scheme: dark) {
+	:root:not(.light) {
+		--background: oklch(0.145 0 0);
+		--foreground: oklch(0.985 0 0);
+		--card: oklch(0.205 0 0);
+		--card-foreground: oklch(0.985 0 0);
+		--popover: oklch(0.205 0 0);
+		--popover-foreground: oklch(0.985 0 0);
+		--primary: oklch(0.87 0 0);
+		--primary-foreground: oklch(0.205 0 0);
+		--secondary: oklch(0.269 0 0);
+		--secondary-foreground: oklch(0.985 0 0);
+		--muted: oklch(0.269 0 0);
+		--muted-foreground: oklch(0.708 0 0);
+		--accent: oklch(0.371 0 0);
+		--accent-foreground: oklch(0.985 0 0);
+		--destructive: oklch(0.704 0.191 22.216);
+		--border: oklch(1 0 0 / 10%);
+		--input: oklch(1 0 0 / 15%);
+		--ring: oklch(0.556 0 0);
+		--sidebar: oklch(0.205 0 0);
+		--sidebar-foreground: oklch(0.985 0 0);
+		--sidebar-primary: oklch(0.488 0.243 264.376);
+		--sidebar-primary-foreground: oklch(0.985 0 0);
+		--sidebar-accent: oklch(0.269 0 0);
+		--sidebar-accent-foreground: oklch(0.985 0 0);
+		--sidebar-border: oklch(1 0 0 / 10%);
+		--sidebar-ring: oklch(0.556 0 0);
+	}
+}
+
+/*
+ * Semantic tokens layered on top of the shadcn neutral palette per
+ * `planning/16-design-system.md#color-tokens`. Mode pills, view stripes,
+ * editor highlights, and the dirty-buffer dot all consume these so the
+ * design system stays one source of truth.
+ */
+:root {
+	--mode-normal: oklch(0.62 0.214 259.815);
+	--mode-insert: oklch(0.696 0.17 162.48);
+	--mode-visual: oklch(0.769 0.188 70.08);
+	--mode-command: oklch(0.627 0.265 303.9);
+	--mode-replace: oklch(0.637 0.237 25.331);
+	--mode-list: oklch(0.55 0 0);
+	--mode-leader: oklch(0.55 0 0);
+
+	--journal-stripe: oklch(0.62 0.16 296);
+	--agenda-now-line: oklch(0.637 0.237 25.331);
+	--agenda-current-hour: oklch(0.92 0 0);
+	--todo-priority-a: oklch(0.637 0.237 25.331);
+	--todo-priority-b: oklch(0.769 0.188 70.08);
+	--todo-priority-c: oklch(0.7 0 0);
+	--todo-deadline-overdue: oklch(0.637 0.237 25.331);
+	--todo-deadline-soon: oklch(0.769 0.188 70.08);
+
+	--yank-flash: oklch(0.95 0.13 95);
+	--block-jump-highlight: oklch(0.85 0.08 250);
+	--buffer-dirty-dot: oklch(0.7 0.18 50);
+}
+
+.dark,
+:root.dark {
+	--mode-normal: oklch(0.809 0.105 251.813);
+	--mode-insert: oklch(0.845 0.143 164.978);
+	--mode-visual: oklch(0.879 0.169 91.605);
+	--mode-command: oklch(0.827 0.119 306.383);
+	--mode-replace: oklch(0.704 0.191 22.216);
+	--mode-list: oklch(0.708 0 0);
+	--mode-leader: oklch(0.708 0 0);
+
+	--journal-stripe: oklch(0.7 0.14 296);
+	--agenda-current-hour: oklch(0.27 0 0);
+
+	--yank-flash: oklch(0.5 0.16 90 / 30%);
+	--block-jump-highlight: oklch(0.5 0.16 250 / 30%);
+}
+
+@media (prefers-color-scheme: dark) {
+	:root:not(.light) {
+		--mode-normal: oklch(0.809 0.105 251.813);
+		--mode-insert: oklch(0.845 0.143 164.978);
+		--mode-visual: oklch(0.879 0.169 91.605);
+		--mode-command: oklch(0.827 0.119 306.383);
+		--mode-replace: oklch(0.704 0.191 22.216);
+
+		--journal-stripe: oklch(0.7 0.14 296);
+		--agenda-current-hour: oklch(0.27 0 0);
+
+		--yank-flash: oklch(0.5 0.16 90 / 30%);
+		--block-jump-highlight: oklch(0.5 0.16 250 / 30%);
+	}
+}
+
 @theme inline {
-	--font-sans: "Inter Variable", sans-serif;
+	/*
+	 * Inter / JetBrains Mono will land bundled under
+	 * `apps/desktop/src/fonts/` per `planning/16-design-system.md#typography`.
+	 * Until then we ride the OS UI sans stack so the chrome doesn't
+	 * fall through to a serif default and look like a fresh `<p>` tag.
+	 */
+	--font-sans:
+		ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+		Roboto, "Helvetica Neue", Arial, sans-serif;
+	--color-mode-normal: var(--mode-normal);
+	--color-mode-insert: var(--mode-insert);
+	--color-mode-visual: var(--mode-visual);
+	--color-mode-command: var(--mode-command);
+	--color-mode-replace: var(--mode-replace);
+	--color-mode-list: var(--mode-list);
+	--color-mode-leader: var(--mode-leader);
+	--color-journal-stripe: var(--journal-stripe);
+	--color-agenda-now-line: var(--agenda-now-line);
+	--color-agenda-current-hour: var(--agenda-current-hour);
+	--color-todo-priority-a: var(--todo-priority-a);
+	--color-todo-priority-b: var(--todo-priority-b);
+	--color-todo-priority-c: var(--todo-priority-c);
+	--color-todo-deadline-overdue: var(--todo-deadline-overdue);
+	--color-todo-deadline-soon: var(--todo-deadline-soon);
+	--color-yank-flash: var(--yank-flash);
+	--color-block-jump-highlight: var(--block-jump-highlight);
+	--color-buffer-dirty-dot: var(--buffer-dirty-dot);
 	--color-sidebar-ring: var(--sidebar-ring);
 	--color-sidebar-border: var(--sidebar-border);
 	--color-sidebar-accent-foreground: var(--sidebar-accent-foreground);

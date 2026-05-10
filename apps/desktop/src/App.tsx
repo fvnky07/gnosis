@@ -31,23 +31,16 @@ function isInsideTauri(): boolean {
 	return Boolean(w.__TAURI_INTERNALS__ ?? w.__TAURI__);
 }
 
-const SAMPLE_ORG = `#+TITLE: Welcome to gnosis
+const WELCOME_ORG = `#+TITLE: Welcome to gnosis
 
 * TODO try vim
-:PROPERTIES:
-:ID:       01J9DEMO0001
-:END:
 SCHEDULED: <2026-05-10 Sun>
 press \`Esc\` then \`i\` to enter INSERT mode and edit. Use \`:\` for ex commands.
 
-* DONE [#A] sanity check :demo:
-:PROPERTIES:
-:ID:       01J9DEMO0002
-:END:
-this is a static demo doc. file IO and indexer wiring land in the next slice.
-
-** child block :nested:
-tag inheritance demo
+* this vault is empty
+drop \`.org\` files into this folder, or capture one via \`⌘K\` →
+\`j hello world\`. on next launch the indexer will pick them up
+and the editor will open the first one instead of this welcome doc.
 `;
 
 export default function App() {
@@ -125,6 +118,11 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 
 	const [blocks, setBlocks] = useState<ViewBlock[]>([]);
 	const [indexNote, setIndexNote] = useState<string>("indexing…");
+	const [activeBuffer, setActiveBuffer] = useState<{
+		id: string;
+		filePath: string;
+		doc: string;
+	}>({ id: "welcome", filePath: "(welcome)", doc: WELCOME_ORG });
 
 	const refresh = useCallback(async () => {
 		const next = await runtime.loadViewBlocks();
@@ -141,6 +139,19 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 					`indexed ${result.filesParsed} file${result.filesParsed === 1 ? "" : "s"} · idsMinted ${result.idsMinted}`,
 				);
 				await refresh();
+				const files = await runtime.vault.list();
+				if (cancelled) return;
+				const first = files[0];
+				if (first) {
+					try {
+						const doc = await runtime.vault.read(first.path);
+						if (cancelled) return;
+						setActiveBuffer({ id: first.path, filePath: first.path, doc });
+					} catch (err) {
+						const message = err instanceof Error ? err.message : String(err);
+						await logWarn(`Failed to open ${first.path}: ${message}`);
+					}
+				}
 			} catch (err) {
 				const message = err instanceof Error ? err.message : String(err);
 				if (cancelled) return;
@@ -221,12 +232,12 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 			}}
 		>
 			<EditorPane
-				bufferId="demo"
-				filePath="demo.org"
-				initialDoc={SAMPLE_ORG}
+				bufferId={activeBuffer.id}
+				filePath={activeBuffer.filePath}
+				initialDoc={activeBuffer.doc}
 				vimEnabled
 				onChange={() => {
-					// File-IO write-back wires up in the next slice.
+					// Idle-debounced write-back wires in next slice.
 				}}
 				className="overflow-auto"
 			/>
@@ -244,7 +255,7 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 				className={sidebarOpen ? "col-span-3" : "col-span-1"}
 				mode="INSERT"
 				vaultPath={vaultPath}
-				indexStatus={`schema v${schemaVersion ?? "?"} · ${indexNote} · ⌘K · ⌘⇧B`}
+				indexStatus={`${activeBuffer.filePath} · schema v${schemaVersion ?? "?"} · ${indexNote} · ⌘K · ⌘⇧B`}
 			/>
 			<CommandPalette
 				registry={palette}
