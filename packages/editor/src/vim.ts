@@ -1,6 +1,7 @@
-import type { Extension } from "@codemirror/state";
+import { type Extension, Prec } from "@codemirror/state";
+import { keymap } from "@codemirror/view";
 import type { CodeMirrorV, ExParams } from "@replit/codemirror-vim";
-import { Vim, vim } from "@replit/codemirror-vim";
+import { getCM, Vim, vim } from "@replit/codemirror-vim";
 
 export interface VimHostBindings {
 	capture: (kind: "journal" | "task" | "note", text: string) => Promise<void>;
@@ -20,6 +21,12 @@ export interface VimHostBindings {
 	reindex: () => Promise<void>;
 	saveBuffer: () => Promise<void>;
 	closeBuffer: () => Promise<void>;
+	/** Optional. When defined, the editor intercepts NORMAL-mode `:` and `/`
+	 * and routes them to this binding instead of letting cm-vim show its own
+	 * inline command line. The host typically opens the command palette
+	 * seeded with the trigger character (so `:` opens commands, `/` opens
+	 * the block search prefix). */
+	openCommandLine?: (trigger: string) => void;
 }
 
 let registered = false;
@@ -29,7 +36,36 @@ export function buildVimExtensions(host?: VimHostBindings): Extension[] {
 		registerExCommands(host);
 		registered = true;
 	}
-	return [vim()];
+	const extensions: Extension[] = [vim()];
+	if (host?.openCommandLine) {
+		extensions.push(buildCommandLineBridge(host.openCommandLine));
+	}
+	return extensions;
+}
+
+/**
+ * Captures NORMAL-mode `:` and `/` before cm-vim sees them and forwards to
+ * the host. In INSERT/VISUAL mode the keys pass through so users can still
+ * type them as characters or apply ex on a range.
+ */
+function buildCommandLineBridge(open: (trigger: string) => void): Extension {
+	const intercept =
+		(trigger: string) => (view: import("@codemirror/view").EditorView) => {
+			const cm = getCM(view);
+			const vimSt = cm?.state?.vim as
+				| { insertMode?: boolean; visualMode?: boolean }
+				| undefined;
+			if (!vimSt) return false;
+			if (vimSt.insertMode || vimSt.visualMode) return false;
+			open(trigger);
+			return true;
+		};
+	return Prec.highest(
+		keymap.of([
+			{ key: ":", run: intercept(":") },
+			{ key: "/", run: intercept("/") },
+		]),
+	);
 }
 
 function registerExCommands(host: VimHostBindings) {

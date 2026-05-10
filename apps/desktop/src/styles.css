@@ -1,13 +1,64 @@
 @import "tailwindcss";
 @import "../../../packages/ui/src/styles/globals.css";
 
+/* Commit Mono, bundled under apps/desktop/src/fonts/commit-mono/. OFL-1.1
+ * licensed (see ./fonts/commit-mono/LICENSE.txt). Vite copies these as
+ * assets thanks to the relative URLs below. */
+@font-face {
+	font-family: "Commit Mono";
+	src: url("./fonts/commit-mono/CommitMono-400-Regular.woff2") format("woff2");
+	font-weight: 400;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: "Commit Mono";
+	src: url("./fonts/commit-mono/CommitMono-400-Italic.woff2") format("woff2");
+	font-weight: 400;
+	font-style: italic;
+	font-display: swap;
+}
+@font-face {
+	font-family: "Commit Mono";
+	src: url("./fonts/commit-mono/CommitMono-700-Regular.woff2") format("woff2");
+	font-weight: 700;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: "Commit Mono";
+	src: url("./fonts/commit-mono/CommitMono-700-Italic.woff2") format("woff2");
+	font-weight: 700;
+	font-style: italic;
+	font-display: swap;
+}
+
+/* Frameless macOS window: the top strip is the drag handle.
+ * `app-region` is a non-standard property but Tauri's WKWebView honors
+ * it. Anything that should stay clickable inside the strip sets
+ * `app-region: no-drag`. */
+.drag-region {
+	-webkit-app-region: drag;
+	app-region: drag;
+}
+.no-drag-region {
+	-webkit-app-region: no-drag;
+	app-region: no-drag;
+}
+
+/* Hide native scrollbar inside the status bar's horizontal overflow. */
+.scrollbar-none {
+	scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+	display: none;
+}
+
 /* CodeMirror sizing: fill the parent container provided by EditorPane. */
 .cm-editor {
 	height: 100%;
-	font-family:
-		ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono",
-		monospace;
-	font-size: 13px;
+	font-family: var(--font-mono);
+	font-size: 14px;
 }
 .cm-editor.cm-focused {
 	outline: none;

@@ -21,6 +21,11 @@ export interface BufferProps {
 	vimHostBindings?: import("./vim").VimHostBindings;
 	/** Optional callback fired whenever the vim mode changes. */
 	onVimModeChange?: (mode: import("./mode-observer").VimMode) => void;
+	/** Optional callback fired on cursor/selection move + doc edits with the
+	 * current line/col + word counts. */
+	onSelectionChange?: (
+		info: import("./selection-observer").SelectionInfo,
+	) => void;
 }
 
 /** Kind of org-flavored token recognized by {@link findOrgTokens}. */

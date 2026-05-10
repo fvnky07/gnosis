@@ -1,25 +1,45 @@
+import type { CSSProperties } from "react";
 import { useVimRuntime, type VimMode } from "./store";
 
-const MODE_STYLES: Record<VimMode, { label: string; className: string }> = {
-	NORMAL: { label: "NORMAL", className: "bg-blue-600 text-white" },
-	INSERT: { label: "INSERT", className: "bg-green-600 text-white" },
-	VISUAL: { label: "VISUAL", className: "bg-amber-500 text-black" },
-	REPLACE: { label: "REPLACE", className: "bg-red-600 text-white" },
-	COMMAND: { label: "COMMAND", className: "bg-purple-600 text-white" },
-	LIST: { label: "LIST", className: "bg-gray-500 text-white" },
-	LEADER: { label: "LEADER", className: "bg-gray-500 text-white underline" },
+/* Each mode binds to a pair of CSS vars defined in
+ * `packages/ui/src/styles/globals.css` (`--mode-*` + `--mode-*-fg`). The
+ * pill renders as a small uppercase capsule sized to match the status
+ * bar's 11px text — half-height of the host bar feels native on macOS. */
+const MODE_LABELS: Record<VimMode, string> = {
+	NORMAL: "NORMAL",
+	INSERT: "INSERT",
+	VISUAL: "VISUAL",
+	REPLACE: "REPLACE",
+	COMMAND: "COMMAND",
+	LIST: "LIST",
+	LEADER: "LEADER",
+};
+
+const MODE_TOKEN: Record<VimMode, { bg: string; fg: string }> = {
+	NORMAL: { bg: "var(--mode-normal)", fg: "var(--mode-normal-fg)" },
+	INSERT: { bg: "var(--mode-insert)", fg: "var(--mode-insert-fg)" },
+	VISUAL: { bg: "var(--mode-visual)", fg: "var(--mode-visual-fg)" },
+	REPLACE: { bg: "var(--mode-replace)", fg: "var(--mode-replace-fg)" },
+	COMMAND: { bg: "var(--mode-command)", fg: "var(--mode-command-fg)" },
+	LIST: { bg: "var(--mode-list)", fg: "var(--mode-list-fg)" },
+	LEADER: { bg: "var(--mode-leader)", fg: "var(--mode-leader-fg)" },
 };
 
 export function ModePill({ className = "" }: { className?: string }) {
 	const mode = useVimRuntime((s) => s.mode);
 	const leaderActive = useVimRuntime((s) => s.leaderActive);
 	const display: VimMode = leaderActive ? "LEADER" : mode;
-	const style = MODE_STYLES[display];
+	const token = MODE_TOKEN[display];
+	const style: CSSProperties = {
+		backgroundColor: token.bg,
+		color: token.fg,
+	};
 	return (
 		<span
-			className={`inline-flex items-center px-2 py-0.5 font-mono text-xs uppercase tracking-wider ${style.className} ${className}`}
+			style={style}
+			className={`inline-flex h-[18px] select-none items-center rounded-full px-2 font-mono text-[10px] uppercase leading-none tracking-wider ${className}`}
 		>
-			{style.label}
+			{MODE_LABELS[display]}
 		</span>
 	);
 }

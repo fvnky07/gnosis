@@ -1,4 +1,4 @@
-import type { VimHostBindings, VimMode } from "@gnosis/editor";
+import type { SelectionInfo, VimHostBindings, VimMode } from "@gnosis/editor";
 import { CommandPalette, type PaletteCtx } from "@gnosis/palette";
 import type { ViewBlock } from "@gnosis/views";
 import {
@@ -8,10 +8,9 @@ import {
 } from "@gnosis/vim-runtime";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BlockDetailsPopover } from "./components/BlockDetailsPopover";
-import { ResizeHandle } from "./components/ResizeHandle";
-import { RightSidebar, type ViewKind } from "./components/RightSidebar";
 import { StatusBar } from "./components/StatusBar";
 import { TabSwitcher } from "./components/TabSwitcher";
+import { ViewCard, type ViewKind } from "./components/ViewCard";
 import { EditorPane } from "./EditorPane";
 import { openDb, readSchemaVersion } from "./lib/db";
 import { error as logError, info as logInfo, warn as logWarn } from "./lib/log";
@@ -99,9 +98,9 @@ export default function App() {
 	}
 
 	return (
-		<div className="flex h-dvh w-dvw items-center justify-center bg-background text-foreground">
-			<div className="max-w-md text-center">
-				<h1 className="font-semibold text-2xl">gnosis</h1>
+		<div className="drag-region flex h-dvh w-dvw items-center justify-center bg-background text-foreground">
+			<div className="no-drag-region max-w-md text-center">
+				<h1 className="font-semibold text-2xl tracking-tight">gnosis</h1>
 				<p className="mt-2 text-muted-foreground text-sm">
 					desktop shell — phase 0–2 bootstrap
 				</p>
@@ -130,16 +129,14 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 		filePath: string;
 		doc: string;
 	}>({ id: "welcome", filePath: "(welcome)", doc: WELCOME_ORG });
+	const [selection, setSelection] = useState<SelectionInfo | null>(null);
 
-	// ── right sidebar ─────────────────────────────────────────────────────────
-	const [sidebarOpen, setSidebarOpen] = useState(true);
-	const [rightWidth, setRightWidth] = useState(480);
-	const [sidebarView, setSidebarView] = useState<ViewKind>("journal");
+	// One view at a time, or none. Replaces the former sidebar+tab strip.
+	const [viewOpen, setViewOpen] = useState<ViewKind | null>(null);
 
-	const openSidebarView = useCallback((id: string) => {
+	const openView = useCallback((id: string) => {
 		const next: ViewKind = id === "agenda" || id === "todos" ? id : "journal";
-		setSidebarView(next);
-		setSidebarOpen(true);
+		setViewOpen(next);
 	}, []);
 
 	const refresh = useCallback(async () => {
@@ -170,13 +167,27 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 		},
 	});
 
+	// Seed value passed to the palette on the next open. Bumped whenever
+	// vim's `:` / `/` bridge wants to drop the user into a prefix.
+	const [paletteSeed, setPaletteSeed] = useState<string | undefined>(undefined);
+	const openPaletteWith = useCallback(
+		(seed?: string) => {
+			setPaletteSeed(seed);
+			setOpen(true);
+		},
+		[setOpen],
+	);
+	useEffect(() => {
+		if (!open) setPaletteSeed(undefined);
+	}, [open]);
+
 	// ── global vim leader handler ─────────────────────────────────────────────
 	useGlobalVim({
-		openPalette: () => setOpen(true),
-		openCapture: () => setOpen(true), // TODO: seed query for capture preset
+		openPalette: () => openPaletteWith(),
+		openCapture: () => openPaletteWith(),
 		openBlockDetails: () => setBlockDetailsOpen(true),
-		openOutline: () => setOpen(true), // TODO: seed query with "o "
-		openViewsSubmode: () => setOpen(true), // TODO: seed query with "v "
+		openOutline: () => openPaletteWith("o "),
+		openViewsSubmode: () => openPaletteWith("v "),
 	});
 
 	useEffect(() => {
@@ -238,7 +249,7 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 					await refresh();
 				},
 				openView: async (viewId) => {
-					openSidebarView(viewId);
+					openView(viewId);
 				},
 				runCommand: async (commandId) => {
 					const command = commands.get(commandId);
@@ -277,83 +288,52 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 		}),
 		// `commands` and `runtime` are stable across renders; `refresh` is
 		// memoized on `runtime`. vaultPath changes only when the user re-picks.
-		[
-			vaultPath,
-			activeBuffer.filePath,
-			commands,
-			runtime,
-			refresh,
-			openSidebarView,
-		],
+		[vaultPath, activeBuffer.filePath, commands, runtime, refresh, openView],
 	);
 
-	// ── vim host bindings (editor ex commands) ────────────────────────────────
+	// ── vim host bindings (editor ex commands + cmdline bridge) ──────────────
 	const vimHostBindings = useMemo<VimHostBindings>(
 		() => ({
 			capture: async (kind, text) => {
 				await runtime.capture(kind, text);
 				await refresh();
 			},
-			toggleDone: async () => {
-				// TODO: heading-aware TODO/DONE toggle
-			},
-			toggleTodo: async () => {
-				// TODO: cycle todo state
-			},
-			schedule: async (_date) => {
-				// TODO: insert SCHEDULED drawer
-			},
-			deadline: async (_date) => {
-				// TODO: insert DEADLINE drawer
-			},
-			setPriority: async () => {
-				// TODO: set priority cookie
-			},
-			addTag: async () => {
-				// TODO: append tag to heading
-			},
-			removeTag: async () => {
-				// TODO: remove tag from heading
-			},
-			extractRefile: async () => {
-				// TODO: cut subtree and refile
-			},
+			toggleDone: async () => {},
+			toggleTodo: async () => {},
+			schedule: async (_date) => {},
+			deadline: async (_date) => {},
+			setPriority: async () => {},
+			addTag: async () => {},
+			removeTag: async () => {},
+			extractRefile: async () => {},
 			openFile: async (path) => {
 				const doc = await runtime.openFile(path);
 				setActiveBuffer({ id: path, filePath: path, doc });
 			},
 			searchBlocks: async (_q) => {
-				// TODO: open palette in block search mode with query seeded
-				setOpen(true);
+				openPaletteWith("b ");
 			},
 			openView: async (id) => {
-				openSidebarView(id);
+				openView(id);
 			},
-			openVault: async () => {
-				// TODO: open vault picker dialog
-			},
-			openSettings: async () => {
-				// TODO: open settings panel
-			},
+			openVault: async () => {},
+			openSettings: async () => {},
 			reindex: async () => {
 				await runtime.coldIndex();
 				await refresh();
 			},
-			saveBuffer: async () => {
-				// TODO: debounced writeback
-			},
-			closeBuffer: async () => {
-				// TODO: multi-tab close
+			saveBuffer: async () => {},
+			closeBuffer: async () => {},
+			openCommandLine: (trigger) => {
+				// `:` → commands prefix, `/` → block search prefix.
+				openPaletteWith(trigger === "/" ? "b " : "> ");
 			},
 		}),
-		[runtime, refresh, setOpen, openSidebarView],
+		[runtime, refresh, openPaletteWith, openView],
 	);
 
-	// ── layout state ──────────────────────────────────────────────────────────
-	// sidebar state lives here so `ctx.exec.openView` (defined below) can
-	// drive the right sidebar from palette/leader/ex commands. The actual
-	// `<RightSidebar>` mount is in the JSX further down.
-
+	// Cmd+Shift+B no longer toggles the sidebar — repurpose it to close the
+	// currently-open view (a no-op if nothing is open).
 	useEffect(() => {
 		function onKeyDown(event: KeyboardEvent) {
 			const isMac =
@@ -361,7 +341,7 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 			const summon = isMac ? event.metaKey : event.ctrlKey;
 			if (summon && event.shiftKey && event.key.toLowerCase() === "b") {
 				event.preventDefault();
-				setSidebarOpen((prev) => !prev);
+				setViewOpen(null);
 			}
 		}
 		window.addEventListener("keydown", onKeyDown);
@@ -372,7 +352,6 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 
 	// ── block details popover ─────────────────────────────────────────────────
 	const [blockDetailsOpen, setBlockDetailsOpen] = useState(false);
-	// TODO: cursor-aware block detection; for MVP use most-recent indexed block
 	const selectedBlock = blocks[0] ?? null;
 
 	useEffect(() => {
@@ -389,8 +368,7 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 		return () => window.removeEventListener("keydown", onKeyDown);
 	}, []);
 
-	// ── tab switcher ──────────────────────────────────────────────────────────
-	// MVP: single-element tab list derived from the active buffer.
+	// ── tab switcher (Ctrl+Tab MRU overlay, kept as transient affordance) ─────
 	const tabs = useMemo(
 		() => [
 			{
@@ -406,7 +384,6 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 
 	useEffect(() => {
 		let ctrlHeld = false;
-
 		function down(e: KeyboardEvent) {
 			if (e.key === "Control") ctrlHeld = true;
 			if (e.key === "Tab" && ctrlHeld) {
@@ -415,14 +392,12 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 				setTabSwitcherIndex((i) => (i + 1) % Math.max(tabs.length, 1));
 			}
 		}
-
 		function up(e: KeyboardEvent) {
 			if (e.key === "Control") {
 				ctrlHeld = false;
 				if (tabSwitcherOpen) {
 					const tab = tabs[tabSwitcherIndex];
 					if (tab) {
-						// commit — open the selected tab
 						runtime
 							.openFile(tab.filePath)
 							.then((doc) => {
@@ -432,15 +407,12 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 									doc,
 								});
 							})
-							.catch(() => {
-								// no-op if file read fails
-							});
+							.catch(() => {});
 					}
 					setTabSwitcherOpen(false);
 				}
 			}
 		}
-
 		window.addEventListener("keydown", down);
 		window.addEventListener("keyup", up);
 		return () => {
@@ -449,53 +421,57 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 		};
 	}, [tabs, tabSwitcherIndex, tabSwitcherOpen, runtime]);
 
-	const sidebarWidth = sidebarOpen ? rightWidth : 0;
+	void schemaVersion;
+	void indexNote;
 
 	return (
-		<div
-			className="grid h-dvh w-dvw bg-background text-foreground"
-			style={{
-				gridTemplateColumns: sidebarOpen ? `1fr 6px ${sidebarWidth}px` : "1fr",
-				gridTemplateRows: "1fr 24px",
-			}}
-		>
-			<EditorPane
-				bufferId={activeBuffer.id}
-				filePath={activeBuffer.filePath}
-				initialDoc={activeBuffer.doc}
-				vimEnabled
-				vimHostBindings={vimHostBindings}
-				onVimModeChange={onVimModeChange}
-				onChange={() => {
-					// Idle-debounced write-back wires in next slice.
-				}}
-				className="overflow-auto"
-			/>
-			{sidebarOpen ? (
-				<>
-					<ResizeHandle
-						width={rightWidth}
-						onWidthChange={setRightWidth}
-						onDoubleClick={() => setSidebarOpen(false)}
+		<div className="flex h-dvh w-dvw flex-col gap-3 overflow-hidden bg-background p-3 pt-0 text-foreground">
+			{/* Top drag strip — invisible, but doubles as the inset for the
+			    macOS traffic lights and gives the user a place to grab the
+			    window from. */}
+			<div className="drag-region h-8 shrink-0" />
+
+			<main className="flex min-h-0 flex-1 items-stretch justify-center gap-3">
+				<div className="flex min-w-0 max-w-3xl flex-1 overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-sm">
+					<EditorPane
+						bufferId={activeBuffer.id}
+						filePath={activeBuffer.filePath}
+						initialDoc={activeBuffer.doc}
+						vimEnabled
+						vimHostBindings={vimHostBindings}
+						onVimModeChange={onVimModeChange}
+						onSelectionChange={setSelection}
+						onChange={() => {
+							// Idle-debounced write-back wires in next slice.
+						}}
+						className="h-full w-full overflow-auto px-6 py-4"
 					/>
-					<RightSidebar
+				</div>
+				{viewOpen ? (
+					<ViewCard
 						blocks={blocks}
-						view={sidebarView}
-						onViewChange={setSidebarView}
-						onClose={() => setSidebarOpen(false)}
+						view={viewOpen}
+						onClose={() => setViewOpen(null)}
+						className="w-[clamp(320px,28vw,480px)] shrink-0"
 					/>
-				</>
-			) : null}
-			<StatusBar
-				className={sidebarOpen ? "col-span-3" : "col-span-1"}
-				vaultPath={vaultPath}
-				indexStatus={`${activeBuffer.filePath} · schema v${schemaVersion ?? "?"} · ${indexNote} · ⌘K · ⌘⇧B`}
-			/>
+				) : null}
+			</main>
+
+			<footer className="flex shrink-0 justify-center">
+				<StatusBar
+					vaultPath={vaultPath}
+					activeFilePath={activeBuffer.filePath}
+					selection={selection}
+					className="max-w-[min(720px,calc(100%-1.5rem))]"
+				/>
+			</footer>
+
 			<CommandPalette
 				registry={palette}
 				commandRegistry={commands}
 				ctx={ctx}
 				open={open}
+				seed={paletteSeed}
 				onClose={() => setOpen(false)}
 			/>
 			<BlockDetailsPopover
@@ -521,9 +497,7 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 									doc,
 								});
 							})
-							.catch(() => {
-								// no-op
-							});
+							.catch(() => {});
 					}
 					setTabSwitcherOpen(false);
 				}}

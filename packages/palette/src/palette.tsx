@@ -5,6 +5,7 @@ import {
 	CommandInput,
 	CommandItem,
 	CommandList,
+	CommandShortcut,
 } from "@gnosis/ui/components/command";
 import {
 	Dialog,
@@ -14,6 +15,19 @@ import {
 	DialogTitle,
 } from "@gnosis/ui/components/dialog";
 import { cn } from "@gnosis/ui/lib/utils";
+import {
+	ClockIcon,
+	FilesIcon,
+	FileTextIcon,
+	HashIcon,
+	HelpCircleIcon,
+	LayoutGridIcon,
+	ListIcon,
+	type LucideIcon,
+	PlusIcon,
+	SettingsIcon,
+	TerminalIcon,
+} from "lucide-react";
 import {
 	type ReactNode,
 	useCallback,
@@ -34,6 +48,10 @@ interface CommandPaletteProps {
 	ctx: PaletteCtx;
 	open: boolean;
 	onClose(): void;
+	/** Optional one-shot query to seed when the palette opens. Useful for
+	 * the vim `:` / `/` bridge — the editor opens the palette and pre-fills
+	 * the input with `>` or `b ` so the user is one keystroke from a match. */
+	seed?: string;
 	frecency?: FrecencyMap;
 	onFrecencyChange?(next: FrecencyMap): void;
 	className?: string;
@@ -50,23 +68,39 @@ const PROVIDER_LABELS: Record<string, string> = {
 	view: "Views",
 	"recent-files": "Recent",
 	commands: "Commands",
+	files: "Files",
+	blocks: "Blocks",
+	outline: "Outline",
+	tabs: "Open buffers",
 };
 
+const PROVIDER_ICONS: Record<string, LucideIcon> = {
+	help: HelpCircleIcon,
+	capture: PlusIcon,
+	view: LayoutGridIcon,
+	"recent-files": ClockIcon,
+	commands: TerminalIcon,
+	files: FileTextIcon,
+	blocks: HashIcon,
+	outline: ListIcon,
+	tabs: FilesIcon,
+};
+
+const FOOTER_HINT =
+	"> commands · f files · b blocks · j/t/n capture · v views · ? help";
+
 /**
- * The CommandPalette React component. Wraps cmdk via the shadcn `Command`
- * primitives, mounted inside a shadcn radix `Dialog` so the popup gets
- * focus trap, scrim click-to-close, and Esc handling for free.
- *
- * Filtering is disabled at the cmdk level — providers do their own
- * matching/scoring; cmdk just renders + arrow-key cycles. Esc is
- * intercepted: pop the mode stack first; only when the stack is empty
- * does it bubble to the dialog close.
+ * The CommandPalette React component. Each row renders as
+ * `[icon] [label] [shortcut]` — the same shape as the shadcn
+ * CommandManyItems example. Filtering is disabled at the cmdk level
+ * since providers do their own scoring; cmdk handles arrow-key cycling.
  */
 export function CommandPalette({
 	registry,
 	ctx,
 	open,
 	onClose,
+	seed,
 	frecency = {},
 	onFrecencyChange,
 	className,
@@ -75,9 +109,12 @@ export function CommandPalette({
 	const [results, setResults] = useState<ProviderResult[]>([]);
 
 	useEffect(() => {
-		if (open && !state.open) dispatch({ type: "open" });
+		if (open && !state.open) {
+			dispatch({ type: "open" });
+			if (seed) dispatch({ type: "set-query", query: seed });
+		}
 		if (!open && state.open) dispatch({ type: "close" });
-	}, [open, state.open]);
+	}, [open, state.open, seed]);
 
 	useEffect(() => {
 		if (!state.open) return;
@@ -141,7 +178,7 @@ export function CommandPalette({
 					}
 				}}
 				className={cn(
-					"data-[state=open]:slide-in-from-top-4 top-[12vh] left-1/2 max-w-xl translate-x-[-50%] translate-y-0 gap-0 overflow-hidden rounded-lg border-border bg-popover p-0 text-popover-foreground shadow-2xl",
+					"data-[state=open]:slide-in-from-top-4 top-[14vh] left-1/2 max-w-xl translate-x-[-50%] translate-y-0 gap-0 overflow-hidden rounded-xl border border-border/70 bg-popover/95 p-0 text-popover-foreground shadow-2xl ring-1 ring-black/5 backdrop-blur-xl",
 					className,
 				)}
 			>
@@ -158,9 +195,10 @@ export function CommandPalette({
 						onValueChange={(value) =>
 							dispatch({ type: "set-query", query: value })
 						}
-						placeholder="Type to search · > commands · f files · b blocks · j/t/n capture · v views · ? help"
+						placeholder="Type a command or search…"
+						className="text-[14px]"
 					/>
-					<CommandList>
+					<CommandList className="max-h-[60vh]">
 						{flatItems.length === 0 ? (
 							<CommandEmpty>{renderEmpty(state)}</CommandEmpty>
 						) : null}
@@ -172,33 +210,76 @@ export function CommandPalette({
 								}
 							>
 								{bucket.items.map((item) => (
-									<CommandItem
+									<PaletteRow
 										key={item.id}
-										value={item.id}
-										onSelect={(value) => {
-											void handleSelect(value);
-										}}
-									>
-										<span className="truncate">{item.label}</span>
-										{item.detail ? (
-											<span className="ml-auto truncate text-muted-foreground text-xs">
-												{item.detail}
-											</span>
-										) : null}
-									</CommandItem>
+										item={item}
+										providerId={bucket.providerId}
+										onSelect={handleSelect}
+									/>
 								))}
 							</CommandGroup>
 						))}
 					</CommandList>
+					<div className="flex h-7 items-center justify-between border-border/60 border-t px-3 font-mono text-[10px] text-muted-foreground">
+						<span className="truncate">{FOOTER_HINT}</span>
+						<span className="shrink-0">↵ select · esc close</span>
+					</div>
 				</Command>
 			</DialogContent>
 		</Dialog>
 	);
 }
 
+interface PaletteRowProps {
+	item: PaletteItem;
+	providerId: string;
+	onSelect(itemId: string): void;
+}
+
+function PaletteRow({ item, providerId, onSelect }: PaletteRowProps) {
+	const shortcut = item.meta?.shortcut as string | undefined;
+	return (
+		<CommandItem
+			value={item.id}
+			onSelect={(value) => onSelect(value)}
+			className="gap-2.5 py-2"
+		>
+			<PaletteIcon item={item} providerId={providerId} />
+			<div className="flex min-w-0 flex-1 flex-col">
+				<span className="truncate text-[13px] leading-tight">{item.label}</span>
+				{item.detail ? (
+					<span className="truncate text-[11px] text-muted-foreground leading-tight">
+						{item.detail}
+					</span>
+				) : null}
+			</div>
+			{shortcut ? (
+				<CommandShortcut className="font-mono text-[11px]">
+					{shortcut}
+				</CommandShortcut>
+			) : null}
+		</CommandItem>
+	);
+}
+
+function PaletteIcon({
+	item,
+	providerId,
+}: {
+	item: PaletteItem;
+	providerId: string;
+}): ReactNode {
+	if (item.icon) return <span className="size-4 shrink-0">{item.icon}</span>;
+	if (item.id?.startsWith("command:settings"))
+		return <SettingsIcon className="size-4 shrink-0 text-muted-foreground" />;
+	const Icon = PROVIDER_ICONS[providerId];
+	if (!Icon) return null;
+	return <Icon className="size-4 shrink-0 text-muted-foreground" />;
+}
+
 function renderEmpty(state: PaletteState): string {
 	if (state.query.trim() === "") {
-		return "Type to search · > commands · f files · b blocks · j/t/n capture · v views · ? help";
+		return FOOTER_HINT;
 	}
 	return `No matches for "${state.query}"`;
 }
