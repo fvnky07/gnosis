@@ -333,8 +333,29 @@ function groupBySection(results: ProviderResult[]): SectionGroup[] {
 }
 
 function renderEmpty(state: PaletteState): string {
-	if (state.query.trim() === "") {
+	const raw = state.query;
+	if (raw.trim() === "") {
 		return "Type to search…";
 	}
-	return `No matches for "${state.query}"`;
+	const hint = prefixHint(raw);
+	if (hint) return hint;
+	return `No matches for "${raw}"`;
+}
+
+/** Prefix-aware empty-state copy. After a sub-provider trigger like
+ * `j `, `f `, `?` etc. the user has committed to a sub-mode — show the
+ * matching call-to-action instead of "No matches", which reads as an
+ * error when in reality the provider is just waiting on text. */
+function prefixHint(query: string): string | null {
+	if (/^j\s/.test(query)) return "Type the journal entry and press Enter";
+	if (/^t\s/.test(query)) return "Type the task title and press Enter";
+	if (/^n\s/.test(query)) return "Type the note text and press Enter";
+	if (/^f\s/.test(query)) return "Type to fuzzy-search vault files";
+	if (/^b\s/.test(query)) return "Type to full-text search blocks";
+	if (/^o\s/.test(query)) return "No headings in the active buffer";
+	if (/^v\s/.test(query)) return "Pick a view: journal · agenda · todos";
+	if (/^tabs(\s|$)/.test(query)) return "Type to filter open buffers";
+	if (/^>/.test(query)) return "Type to filter commands";
+	if (/^\?/.test(query)) return "Palette quick reference";
+	return null;
 }
