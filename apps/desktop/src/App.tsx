@@ -8,6 +8,7 @@ import {
 } from "@gnosis/vim-runtime";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BlockDetailsPopover } from "./components/BlockDetailsPopover";
+import { SettingsDialog } from "./components/SettingsDialog";
 import { StatusBar } from "./components/StatusBar";
 import { TabSwitcher } from "./components/TabSwitcher";
 import { ViewCard, type ViewKind } from "./components/ViewCard";
@@ -153,6 +154,9 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 		[setMode],
 	);
 
+	// ── settings dialog ───────────────────────────────────────────────────────
+	const [settingsOpen, setSettingsOpen] = useState(false);
+
 	// ── palette engine ────────────────────────────────────────────────────────
 	const { palette, commands, open, setOpen } = usePaletteEngine({
 		onRefreshIndex: async () => {
@@ -163,7 +167,7 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 			// TODO: persist vim-mode preference to settings
 		},
 		onOpenSettings: () => {
-			// TODO: open settings panel
+			setSettingsOpen(true);
 		},
 	});
 
@@ -317,7 +321,9 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 				openView(id);
 			},
 			openVault: async () => {},
-			openSettings: async () => {},
+			openSettings: async () => {
+				setSettingsOpen(true);
+			},
 			reindex: async () => {
 				await runtime.coldIndex();
 				await refresh();
@@ -329,7 +335,7 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 				openPaletteWith(trigger === "/" ? "b " : "> ");
 			},
 		}),
-		[runtime, refresh, openPaletteWith, openView],
+		[runtime, refresh, openPaletteWith, openView, setSettingsOpen],
 	);
 
 	// Cmd+Shift+B no longer toggles the sidebar — repurpose it to close the
@@ -342,6 +348,24 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 			if (summon && event.shiftKey && event.key.toLowerCase() === "b") {
 				event.preventDefault();
 				setViewOpen(null);
+			}
+		}
+		window.addEventListener("keydown", onKeyDown);
+		return () => {
+			window.removeEventListener("keydown", onKeyDown);
+		};
+	}, []);
+
+	// Cmd+, opens the settings dialog (parity with palette command and the
+	// vim `:settings` ex command).
+	useEffect(() => {
+		function onKeyDown(event: KeyboardEvent) {
+			const isMac =
+				typeof navigator !== "undefined" && /Mac/i.test(navigator.platform);
+			const summon = isMac ? event.metaKey : event.ctrlKey;
+			if (summon && event.key === ",") {
+				event.preventDefault();
+				setSettingsOpen((prev) => !prev);
 			}
 		}
 		window.addEventListener("keydown", onKeyDown);
@@ -474,6 +498,7 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 				seed={paletteSeed}
 				onClose={() => setOpen(false)}
 			/>
+			<SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
 			<BlockDetailsPopover
 				block={selectedBlock}
 				open={blockDetailsOpen}
