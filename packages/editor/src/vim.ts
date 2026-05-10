@@ -1,15 +1,112 @@
 import type { Extension } from "@codemirror/state";
-import { vim } from "@replit/codemirror-vim";
+import type { CodeMirrorV, ExParams } from "@replit/codemirror-vim";
+import { Vim, vim } from "@replit/codemirror-vim";
 
-/**
- * Vim mode is core to gnosis — on by default, statically imported. Disabling
- * it is supported via `vimEnabled: false` in {@link createEditor}, but the
- * product is designed around vim being on (see `planning/15-vim-mode.md`).
- *
- * The full ex-command bridge, org-aware text objects/motions, and the global
- * list-mode handler land in subsequent slices. This module currently exposes
- * just the base cm-vim integration.
- */
-export function buildVimExtensions(): Extension[] {
+export interface VimHostBindings {
+	capture: (kind: "journal" | "task" | "note", text: string) => Promise<void>;
+	toggleDone: () => Promise<void>;
+	toggleTodo: () => Promise<void>;
+	schedule: (date: string) => Promise<void>;
+	deadline: (date: string) => Promise<void>;
+	setPriority: (p: "A" | "B" | "C" | null) => Promise<void>;
+	addTag: (tag: string) => Promise<void>;
+	removeTag: (tag: string) => Promise<void>;
+	extractRefile: () => Promise<void>;
+	openFile: (path: string) => Promise<void>;
+	searchBlocks: (q: string) => Promise<void>;
+	openView: (id: string) => Promise<void>;
+	openVault: () => Promise<void>;
+	openSettings: () => Promise<void>;
+	reindex: () => Promise<void>;
+	saveBuffer: () => Promise<void>;
+	closeBuffer: () => Promise<void>;
+}
+
+let registered = false;
+
+export function buildVimExtensions(host?: VimHostBindings): Extension[] {
+	if (host && !registered) {
+		registerExCommands(host);
+		registered = true;
+	}
 	return [vim()];
+}
+
+function registerExCommands(host: VimHostBindings) {
+	// Vim.defineEx(name, prefix, fn). fn receives (cm, params)
+	// params.args is string[] — words after the command
+	// params.argString is the raw arg string
+	Vim.defineEx("capture", "cap", (_cm: CodeMirrorV, params: ExParams) => {
+		const args: string[] = params.args ?? [];
+		const kind = (args[0] ?? "note") as "journal" | "task" | "note";
+		const text = args.slice(1).join(" ");
+		void host.capture(kind, text);
+	});
+	Vim.defineEx("journal", "j", (_cm: CodeMirrorV, params: ExParams) => {
+		void host.capture("journal", (params.args ?? []).join(" "));
+	});
+	Vim.defineEx("task", "t", (_cm: CodeMirrorV, params: ExParams) => {
+		void host.capture("task", (params.args ?? []).join(" "));
+	});
+	Vim.defineEx("done", undefined, () => {
+		void host.toggleDone();
+	});
+	Vim.defineEx("todo", undefined, () => {
+		void host.toggleTodo();
+	});
+	Vim.defineEx("schedule", "sched", (_cm: CodeMirrorV, params: ExParams) => {
+		void host.schedule((params.args ?? []).join(" "));
+	});
+	Vim.defineEx("deadline", "dead", (_cm: CodeMirrorV, params: ExParams) => {
+		void host.deadline((params.args ?? []).join(" "));
+	});
+	Vim.defineEx("priority", "prio", (_cm: CodeMirrorV, params: ExParams) => {
+		const arg = (params.args ?? [])[0] ?? null;
+		const p =
+			arg && /^[ABC]$/i.test(arg)
+				? (arg.toUpperCase() as "A" | "B" | "C")
+				: null;
+		void host.setPriority(p);
+	});
+	Vim.defineEx("tag", undefined, (_cm: CodeMirrorV, params: ExParams) => {
+		void host.addTag((params.args ?? [])[0] ?? "");
+	});
+	Vim.defineEx("untag", undefined, (_cm: CodeMirrorV, params: ExParams) => {
+		void host.removeTag((params.args ?? [])[0] ?? "");
+	});
+	Vim.defineEx("extract", undefined, () => {
+		void host.extractRefile();
+	});
+	Vim.defineEx("open", "o", (_cm: CodeMirrorV, params: ExParams) => {
+		void host.openFile((params.args ?? []).join(" "));
+	});
+	Vim.defineEx("search", "s", (_cm: CodeMirrorV, params: ExParams) => {
+		void host.searchBlocks((params.args ?? []).join(" "));
+	});
+	Vim.defineEx("view", "v", (_cm: CodeMirrorV, params: ExParams) => {
+		void host.openView((params.args ?? [])[0] ?? "today");
+	});
+	Vim.defineEx("vault", undefined, () => {
+		void host.openVault();
+	});
+	Vim.defineEx("settings", undefined, () => {
+		void host.openSettings();
+	});
+	Vim.defineEx("reindex", undefined, () => {
+		void host.reindex();
+	});
+	Vim.defineEx("nohl", "noh", (cm: CodeMirrorV) => {
+		Vim.exitVisualMode(cm);
+	});
+	Vim.defineEx("q", undefined, () => {
+		void host.closeBuffer();
+	});
+	Vim.defineEx("wq", undefined, () => {
+		void host.saveBuffer();
+		void host.closeBuffer();
+	});
+	Vim.defineEx("x", undefined, () => {
+		void host.saveBuffer();
+		void host.closeBuffer();
+	});
 }
