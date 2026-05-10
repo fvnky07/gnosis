@@ -17,6 +17,10 @@ export interface BufferProps {
 	onScroll?: (top: number) => void;
 	/** Optional initial cursor / selection range expressed in source byte offsets. */
 	initialSelection?: { from: number; to: number };
+	/** Optional host bindings for vim ex commands (`:done`, `:capture`, etc.). */
+	vimHostBindings?: import("./vim").VimHostBindings;
+	/** Optional callback fired whenever the vim mode changes. */
+	onVimModeChange?: (mode: import("./mode-observer").VimMode) => void;
 }
 
 /** Kind of org-flavored token recognized by {@link findOrgTokens}. */

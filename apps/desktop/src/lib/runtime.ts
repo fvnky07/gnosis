@@ -22,8 +22,11 @@ import {
 import type { Block } from "@gnosis/db";
 import type { ViewBlock } from "@gnosis/views";
 import { createTauriBlockStore } from "./block-store";
+import { searchBlocks as dbSearchBlocks, type FtsRow, openDb } from "./db";
 import { info as logInfo, warn as logWarn } from "./log";
 import { TauriVault } from "./tauri-vault";
+
+export type { FtsRow };
 
 export interface DesktopRuntime {
 	vault: TauriVault;
@@ -31,6 +34,26 @@ export interface DesktopRuntime {
 	coldIndex(): Promise<IndexResult>;
 	capture(kind: CaptureKind, text: string): Promise<{ filePath: string }>;
 	loadViewBlocks(): Promise<ViewBlock[]>;
+	searchBlocks(query: string, limit?: number): Promise<FtsRow[]>;
+	listFiles(
+		query: string,
+	): Promise<Array<{ path: string; title: string; preview?: string }>>;
+	listOutline(filePath: string | null): Promise<
+		Array<{
+			id: string;
+			filePath: string;
+			level: number;
+			headline: string;
+			line: number;
+		}>
+	>;
+	listTabs(): Promise<
+		Array<{ id: string; filePath: string; title: string; active?: boolean }>
+	>;
+	openFile(path: string): Promise<string>;
+	openBlock(
+		blockId: string,
+	): Promise<{ filePath: string; line: number } | null>;
 }
 
 export function createRuntime(vaultPath: string): DesktopRuntime {
@@ -60,6 +83,86 @@ export function createRuntime(vaultPath: string): DesktopRuntime {
 		async loadViewBlocks() {
 			const rows = await store.getAllBlocks();
 			return rows.map(rowToViewBlock);
+		},
+
+		// -----------------------------------------------------------------------
+		// Phase 6 executors
+		// -----------------------------------------------------------------------
+
+		async searchBlocks(query, limit) {
+			return dbSearchBlocks(query, limit);
+		},
+
+		async listFiles(query) {
+			const files = await vault.list();
+			const lq = query.trim().toLowerCase();
+			return files
+				.filter((f) => {
+					if (!lq) return true;
+					return f.path.toLowerCase().includes(lq);
+				})
+				.map((f) => {
+					const basename = f.path.split("/").pop() ?? f.path;
+					const title = basename.endsWith(".org")
+						? basename.slice(0, -4)
+						: basename;
+					return { path: f.path, title };
+				});
+		},
+
+		async listOutline(filePath) {
+			if (!filePath) return [];
+			let contents: string;
+			try {
+				contents = await vault.read(filePath);
+			} catch (err) {
+				void logWarn(
+					`listOutline: could not read "${filePath}": ${String(err)}`,
+				);
+				return [];
+			}
+			const lines = contents.split("\n");
+			const result: Array<{
+				id: string;
+				filePath: string;
+				level: number;
+				headline: string;
+				line: number;
+			}> = [];
+			const headingRe = /^(\*+)\s+(.+)$/;
+			for (let i = 0; i < lines.length && result.length < 500; i++) {
+				const m = headingRe.exec(lines[i]);
+				if (m) {
+					result.push({
+						id: `${filePath}:${i}`,
+						filePath,
+						level: m[1].length,
+						headline: m[2],
+						line: i,
+					});
+				}
+			}
+			return result;
+		},
+
+		async listTabs() {
+			// TODO(Wave 2 merger): App.tsx will inject active-tab state via a
+			// handler override. For MVP, return empty so callers degrade gracefully.
+			return [];
+		},
+
+		async openFile(path) {
+			return vault.read(path);
+		},
+
+		async openBlock(blockId) {
+			const db = await openDb();
+			const rows = await db.select<{ file_path: string; start_byte: number }[]>(
+				"SELECT file_path, start_byte FROM blocks WHERE id = $1 LIMIT 1",
+				[blockId],
+			);
+			if (!rows[0]) return null;
+			return { filePath: rows[0].file_path, line: 0 };
 		},
 	};
 }

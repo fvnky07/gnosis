@@ -1,8 +1,11 @@
+import type { VimHostBindings, VimMode } from "@gnosis/editor";
 import { type BufferProps, createEditor } from "@gnosis/editor";
 import { useEffect, useRef } from "react";
 
 interface EditorPaneProps extends BufferProps {
 	className?: string;
+	vimHostBindings?: VimHostBindings;
+	onVimModeChange?: (mode: VimMode) => void;
 }
 
 /**
@@ -17,6 +20,7 @@ export function EditorPane({ className, ...props }: EditorPaneProps) {
 	const propsRef = useRef(props);
 	propsRef.current = props;
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: bufferId is the intentional remount key; latest props read via propsRef
 	useEffect(() => {
 		const host = containerRef.current;
 		if (!host) return;

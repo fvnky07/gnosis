@@ -9,7 +9,7 @@
  * When we adopt drizzle-kit, this file becomes the migration runner instead.
  */
 
-export const CURRENT_SCHEMA_VERSION = 1;
+export const CURRENT_SCHEMA_VERSION = 2;
 
 export const CREATE_SCHEMA_VERSION_SQL = `CREATE TABLE IF NOT EXISTS schema_version (
   id INTEGER PRIMARY KEY,
@@ -40,6 +40,29 @@ export const CREATE_BLOCKS_SQL = `CREATE TABLE IF NOT EXISTS blocks (
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 )`;
 
+export const CREATE_BLOCKS_FTS_SQL = `CREATE VIRTUAL TABLE IF NOT EXISTS blocks_fts USING fts5(
+  headline_raw, body,
+  content='blocks', content_rowid='rowid',
+  tokenize='unicode61 remove_diacritics 2'
+)`;
+
+export const CREATE_BLOCKS_FTS_AI_SQL = `CREATE TRIGGER IF NOT EXISTS blocks_ai AFTER INSERT ON blocks BEGIN
+  INSERT INTO blocks_fts(rowid, headline_raw, body)
+  VALUES (new.rowid, new.headline_raw, new.body);
+END`;
+
+export const CREATE_BLOCKS_FTS_AD_SQL = `CREATE TRIGGER IF NOT EXISTS blocks_ad AFTER DELETE ON blocks BEGIN
+  INSERT INTO blocks_fts(blocks_fts, rowid, headline_raw, body)
+  VALUES ('delete', old.rowid, old.headline_raw, old.body);
+END`;
+
+export const CREATE_BLOCKS_FTS_AU_SQL = `CREATE TRIGGER IF NOT EXISTS blocks_au AFTER UPDATE ON blocks BEGIN
+  INSERT INTO blocks_fts(blocks_fts, rowid, headline_raw, body)
+  VALUES ('delete', old.rowid, old.headline_raw, old.body);
+  INSERT INTO blocks_fts(rowid, headline_raw, body)
+  VALUES (new.rowid, new.headline_raw, new.body);
+END`;
+
 /**
  * SQL statements run, in order, on every cold launch.
  * `IF NOT EXISTS` makes this idempotent.
@@ -48,7 +71,11 @@ export const MIGRATIONS_SQL: ReadonlyArray<string> = [
 	CREATE_SCHEMA_VERSION_SQL,
 	CREATE_APP_STATE_SQL,
 	CREATE_BLOCKS_SQL,
+	CREATE_BLOCKS_FTS_SQL,
+	CREATE_BLOCKS_FTS_AI_SQL,
+	CREATE_BLOCKS_FTS_AD_SQL,
+	CREATE_BLOCKS_FTS_AU_SQL,
 ];
 
 /** Upsert the schema_version row. Runs after the CREATEs. */
-export const SEED_SCHEMA_VERSION_SQL = `INSERT OR IGNORE INTO schema_version (id, version) VALUES (1, ${CURRENT_SCHEMA_VERSION})`;
+export const SEED_SCHEMA_VERSION_SQL = `INSERT OR REPLACE INTO schema_version (id, version) VALUES (1, ${CURRENT_SCHEMA_VERSION})`;
