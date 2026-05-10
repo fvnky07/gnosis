@@ -21,6 +21,7 @@
 			"@gnosis/editor": ["../../packages/editor/src"],
 			"@gnosis/palette": ["../../packages/palette/src"],
 			"@gnosis/views": ["../../packages/views/src"],
+			"@gnosis/vim-runtime": ["../../packages/vim-runtime/src"],
 			"@gnosis/db": ["../../packages/db/src"],
 			"@gnosis/db/migrations": ["../../packages/db/src/migrations.ts"]
 		}
