@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+# Cancel superseded runs on the same ref so PR pushes don't queue.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: typecheck · lint · test · build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Cache Turborepo
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+      - name: Install
+        # `--frozen-lockfile` would catch lockfile drift; use it once we have
+        # a clean baseline lockfile committed and stable.
+        run: bun install --no-progress
+      - name: Type check
+        run: bun run check-types
+      - name: Lint
+        run: bun run check
+      - name: Test
+        run: bun run test
+      - name: Build (web bundles only — no Tauri Rust toolchain on CI yet)
+        run: bun run build

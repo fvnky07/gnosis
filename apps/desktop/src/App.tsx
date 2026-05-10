@@ -1,5 +1,9 @@
 import { CommandPalette, type PaletteCtx } from "@gnosis/palette";
+import type { ViewBlock } from "@gnosis/views";
 import { useEffect, useMemo, useState } from "react";
+import { ResizeHandle } from "./components/ResizeHandle";
+import { RightSidebar } from "./components/RightSidebar";
+import { StatusBar } from "./components/StatusBar";
 import { EditorPane } from "./EditorPane";
 import { openDb, readSchemaVersion } from "./lib/db";
 import { error as logError, info as logInfo } from "./lib/log";
@@ -143,18 +147,36 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 		[vaultPath, commands],
 	);
 
+	const [sidebarOpen, setSidebarOpen] = useState(false);
+	const [rightWidth, setRightWidth] = useState(480);
+
+	useEffect(() => {
+		function onKeyDown(event: KeyboardEvent) {
+			const isMac =
+				typeof navigator !== "undefined" && /Mac/i.test(navigator.platform);
+			const summon = isMac ? event.metaKey : event.ctrlKey;
+			if (summon && event.shiftKey && event.key.toLowerCase() === "b") {
+				event.preventDefault();
+				setSidebarOpen((prev) => !prev);
+			}
+		}
+		window.addEventListener("keydown", onKeyDown);
+		return () => {
+			window.removeEventListener("keydown", onKeyDown);
+		};
+	}, []);
+
+	const sidebarWidth = sidebarOpen ? rightWidth : 0;
+	const sampleBlocks: ViewBlock[] = [];
+
 	return (
-		<div className="flex h-dvh w-dvw flex-col bg-background text-foreground">
-			<header className="flex items-baseline justify-between border-border border-b px-4 py-2 text-xs">
-				<span className="font-semibold">gnosis</span>
-				<span className="text-muted-foreground">
-					<code className="font-mono">{vaultPath}</code>
-					{" · "}
-					schema v{schemaVersion ?? "?"}
-					{" · "}
-					<span className="opacity-70">⌘K palette</span>
-				</span>
-			</header>
+		<div
+			className="grid h-dvh w-dvw bg-background text-foreground"
+			style={{
+				gridTemplateColumns: sidebarOpen ? `1fr 6px ${sidebarWidth}px` : "1fr",
+				gridTemplateRows: "1fr 24px",
+			}}
+		>
 			<EditorPane
 				bufferId="demo"
 				filePath="demo.org"
@@ -163,7 +185,26 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 				onChange={() => {
 					// File-IO write-back wires up in the next slice.
 				}}
-				className="flex-1 overflow-auto"
+				className="overflow-auto"
+			/>
+			{sidebarOpen ? (
+				<>
+					<ResizeHandle
+						width={rightWidth}
+						onWidthChange={setRightWidth}
+						onDoubleClick={() => setSidebarOpen(false)}
+					/>
+					<RightSidebar
+						blocks={sampleBlocks}
+						onClose={() => setSidebarOpen(false)}
+					/>
+				</>
+			) : null}
+			<StatusBar
+				className={sidebarOpen ? "col-span-3" : "col-span-1"}
+				mode="INSERT"
+				vaultPath={vaultPath}
+				indexStatus={`schema v${schemaVersion ?? "?"} · ⌘K palette · ⌘⇧B sidebar`}
 			/>
 			<CommandPalette
 				registry={palette}
