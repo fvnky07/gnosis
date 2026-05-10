@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { type AgendaMode, computeAgenda } from "../lib/agenda";
 import { relativeDate } from "../lib/relative-date";
 import type { OnOpenBlock, ViewBlock } from "../types";
+import { EmptyState } from "./EmptyState";
 
 interface AgendaViewProps {
 	blocks: ViewBlock[];
@@ -32,6 +33,7 @@ export function AgendaView({
 		[blocks, mode, now],
 	);
 	const referenceNow = now ?? new Date();
+	const hasScheduled = blocks.some((b) => b.scheduled || b.deadline);
 
 	return (
 		<div className={`flex h-full flex-col text-sm ${className ?? ""}`}>
@@ -56,7 +58,20 @@ export function AgendaView({
 					))}
 				</div>
 			</div>
-			{mode === "month" ? (
+			{!hasScheduled ? (
+				<EmptyState
+					title="No scheduled items"
+					body="Schedule a TODO with `<YYYY-MM-DD>` and it lands on the agenda."
+					cta={
+						<>
+							<kbd className="rounded border border-border px-1.5 py-0.5 font-mono text-[11px]">
+								⌘K
+							</kbd>{" "}
+							→ <code className="font-mono">t buy milk friday</code>
+						</>
+					}
+				/>
+			) : mode === "month" ? (
 				<MonthGrid
 					slots={range.slots}
 					onOpenBlock={onOpenBlock}

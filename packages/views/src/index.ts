@@ -1,6 +1,7 @@
 export const PACKAGE = "@gnosis/views";
 
 export { AgendaView } from "./components/AgendaView";
+export { EmptyState } from "./components/EmptyState";
 export { JournalView } from "./components/JournalView";
 export { TodosView } from "./components/TodosView";
 export {
