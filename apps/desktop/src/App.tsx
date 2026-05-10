@@ -1,9 +1,17 @@
+import type { VimHostBindings, VimMode } from "@gnosis/editor";
 import { CommandPalette, type PaletteCtx } from "@gnosis/palette";
 import type { ViewBlock } from "@gnosis/views";
+import {
+	useGlobalVim,
+	useVimRuntime,
+	WhichKeyOverlay,
+} from "@gnosis/vim-runtime";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { BlockDetailsPopover } from "./components/BlockDetailsPopover";
 import { ResizeHandle } from "./components/ResizeHandle";
 import { RightSidebar } from "./components/RightSidebar";
 import { StatusBar } from "./components/StatusBar";
+import { TabSwitcher } from "./components/TabSwitcher";
 import { EditorPane } from "./EditorPane";
 import { openDb, readSchemaVersion } from "./lib/db";
 import { error as logError, info as logInfo, warn as logWarn } from "./lib/log";
@@ -109,7 +117,6 @@ interface ReadyShellProps {
 }
 
 function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
-	const { palette, commands, open, setOpen } = usePaletteEngine();
 	const runtimeRef = useRef<DesktopRuntime | null>(null);
 	if (runtimeRef.current === null) {
 		runtimeRef.current = createRuntime(vaultPath);
@@ -128,6 +135,38 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 		const next = await runtime.loadViewBlocks();
 		setBlocks(next);
 	}, [runtime]);
+
+	// ── vim store ─────────────────────────────────────────────────────────────
+	const setMode = useVimRuntime((s) => s.setMode);
+	const onVimModeChange = useCallback(
+		(mode: VimMode) => {
+			setMode(mode);
+		},
+		[setMode],
+	);
+
+	// ── palette engine ────────────────────────────────────────────────────────
+	const { palette, commands, open, setOpen } = usePaletteEngine({
+		onRefreshIndex: async () => {
+			await runtime.coldIndex();
+			await refresh();
+		},
+		onToggleVim: () => {
+			// TODO: persist vim-mode preference to settings
+		},
+		onOpenSettings: () => {
+			// TODO: open settings panel
+		},
+	});
+
+	// ── global vim leader handler ─────────────────────────────────────────────
+	useGlobalVim({
+		openPalette: () => setOpen(true),
+		openCapture: () => setOpen(true), // TODO: seed query for capture preset
+		openBlockDetails: () => setBlockDetailsOpen(true),
+		openOutline: () => setOpen(true), // TODO: seed query with "o "
+		openViewsSubmode: () => setOpen(true), // TODO: seed query with "v "
+	});
 
 	useEffect(() => {
 		let cancelled = false;
@@ -168,10 +207,11 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 		};
 	}, [runtime, refresh]);
 
+	// ── palette context (executor methods) ───────────────────────────────────
 	const ctx = useMemo<PaletteCtx>(
 		() => ({
 			vaultRoot: vaultPath,
-			activeFilePath: null,
+			activeFilePath: activeBuffer.filePath,
 			selectedBlockId: null,
 			exec: {
 				captureJournal: async (text) => {
@@ -194,14 +234,104 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 					await logInfo(`palette: runCommand — ${commandId}`);
 					await command?.run(ctx);
 				},
+				listFiles: (q) => runtime.listFiles(q),
+				searchBlocks: async (q) => {
+					const rows = await runtime.searchBlocks(q);
+					return rows.map((r) => ({
+						id: r.id,
+						filePath: r.filePath,
+						headline: r.headlineRaw,
+						snippet: r.snippet,
+						rank: r.rank,
+					}));
+				},
+				listOutline: (filePath) => runtime.listOutline(filePath),
+				listTabs: () => runtime.listTabs(),
+				openFile: async (path) => {
+					const doc = await runtime.openFile(path);
+					setActiveBuffer({ id: path, filePath: path, doc });
+				},
+				openBlock: async (blockId) => {
+					const ref = await runtime.openBlock(blockId);
+					if (ref) {
+						const doc = await runtime.openFile(ref.filePath);
+						setActiveBuffer({
+							id: ref.filePath,
+							filePath: ref.filePath,
+							doc,
+						});
+					}
+				},
 			},
 		}),
 		// `commands` and `runtime` are stable across renders; `refresh` is
 		// memoized on `runtime`. vaultPath changes only when the user re-picks.
-		// biome-ignore lint/correctness/useExhaustiveDependencies: see comment
-		[vaultPath, commands, runtime, refresh],
+		[vaultPath, activeBuffer.filePath, commands, runtime, refresh],
 	);
 
+	// ── vim host bindings (editor ex commands) ────────────────────────────────
+	const vimHostBindings = useMemo<VimHostBindings>(
+		() => ({
+			capture: async (kind, text) => {
+				await runtime.capture(kind, text);
+				await refresh();
+			},
+			toggleDone: async () => {
+				// TODO: heading-aware TODO/DONE toggle
+			},
+			toggleTodo: async () => {
+				// TODO: cycle todo state
+			},
+			schedule: async (_date) => {
+				// TODO: insert SCHEDULED drawer
+			},
+			deadline: async (_date) => {
+				// TODO: insert DEADLINE drawer
+			},
+			setPriority: async () => {
+				// TODO: set priority cookie
+			},
+			addTag: async () => {
+				// TODO: append tag to heading
+			},
+			removeTag: async () => {
+				// TODO: remove tag from heading
+			},
+			extractRefile: async () => {
+				// TODO: cut subtree and refile
+			},
+			openFile: async (path) => {
+				const doc = await runtime.openFile(path);
+				setActiveBuffer({ id: path, filePath: path, doc });
+			},
+			searchBlocks: async (_q) => {
+				// TODO: open palette in block search mode with query seeded
+				setOpen(true);
+			},
+			openView: async (id) => {
+				await logInfo(`vimHostBindings: openView — ${id}`);
+			},
+			openVault: async () => {
+				// TODO: open vault picker dialog
+			},
+			openSettings: async () => {
+				// TODO: open settings panel
+			},
+			reindex: async () => {
+				await runtime.coldIndex();
+				await refresh();
+			},
+			saveBuffer: async () => {
+				// TODO: debounced writeback
+			},
+			closeBuffer: async () => {
+				// TODO: multi-tab close
+			},
+		}),
+		[runtime, refresh, setOpen],
+	);
+
+	// ── layout state ──────────────────────────────────────────────────────────
 	const [sidebarOpen, setSidebarOpen] = useState(true);
 	const [rightWidth, setRightWidth] = useState(480);
 
@@ -221,6 +351,85 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 		};
 	}, []);
 
+	// ── block details popover ─────────────────────────────────────────────────
+	const [blockDetailsOpen, setBlockDetailsOpen] = useState(false);
+	// TODO: cursor-aware block detection; for MVP use most-recent indexed block
+	const selectedBlock = blocks[0] ?? null;
+
+	useEffect(() => {
+		function onKeyDown(event: KeyboardEvent) {
+			const isMac =
+				typeof navigator !== "undefined" && /Mac/i.test(navigator.platform);
+			const mod = isMac ? event.metaKey : event.ctrlKey;
+			if (mod && event.shiftKey && event.key.toLowerCase() === "i") {
+				event.preventDefault();
+				setBlockDetailsOpen((prev) => !prev);
+			}
+		}
+		window.addEventListener("keydown", onKeyDown);
+		return () => window.removeEventListener("keydown", onKeyDown);
+	}, []);
+
+	// ── tab switcher ──────────────────────────────────────────────────────────
+	// MVP: single-element tab list derived from the active buffer.
+	const tabs = useMemo(
+		() => [
+			{
+				id: activeBuffer.id,
+				filePath: activeBuffer.filePath,
+				title: activeBuffer.filePath.split("/").pop() ?? activeBuffer.filePath,
+			},
+		],
+		[activeBuffer],
+	);
+	const [tabSwitcherOpen, setTabSwitcherOpen] = useState(false);
+	const [tabSwitcherIndex, setTabSwitcherIndex] = useState(0);
+
+	useEffect(() => {
+		let ctrlHeld = false;
+
+		function down(e: KeyboardEvent) {
+			if (e.key === "Control") ctrlHeld = true;
+			if (e.key === "Tab" && ctrlHeld) {
+				e.preventDefault();
+				setTabSwitcherOpen(true);
+				setTabSwitcherIndex((i) => (i + 1) % Math.max(tabs.length, 1));
+			}
+		}
+
+		function up(e: KeyboardEvent) {
+			if (e.key === "Control") {
+				ctrlHeld = false;
+				if (tabSwitcherOpen) {
+					const tab = tabs[tabSwitcherIndex];
+					if (tab) {
+						// commit — open the selected tab
+						runtime
+							.openFile(tab.filePath)
+							.then((doc) => {
+								setActiveBuffer({
+									id: tab.filePath,
+									filePath: tab.filePath,
+									doc,
+								});
+							})
+							.catch(() => {
+								// no-op if file read fails
+							});
+					}
+					setTabSwitcherOpen(false);
+				}
+			}
+		}
+
+		window.addEventListener("keydown", down);
+		window.addEventListener("keyup", up);
+		return () => {
+			window.removeEventListener("keydown", down);
+			window.removeEventListener("keyup", up);
+		};
+	}, [tabs, tabSwitcherIndex, tabSwitcherOpen, runtime]);
+
 	const sidebarWidth = sidebarOpen ? rightWidth : 0;
 
 	return (
@@ -236,6 +445,8 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 				filePath={activeBuffer.filePath}
 				initialDoc={activeBuffer.doc}
 				vimEnabled
+				vimHostBindings={vimHostBindings}
+				onVimModeChange={onVimModeChange}
 				onChange={() => {
 					// Idle-debounced write-back wires in next slice.
 				}}
@@ -253,7 +464,6 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 			) : null}
 			<StatusBar
 				className={sidebarOpen ? "col-span-3" : "col-span-1"}
-				mode="INSERT"
 				vaultPath={vaultPath}
 				indexStatus={`${activeBuffer.filePath} · schema v${schemaVersion ?? "?"} · ${indexNote} · ⌘K · ⌘⇧B`}
 			/>
@@ -264,6 +474,38 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 				open={open}
 				onClose={() => setOpen(false)}
 			/>
+			<BlockDetailsPopover
+				block={selectedBlock}
+				open={blockDetailsOpen}
+				onOpenChange={setBlockDetailsOpen}
+				anchor={null}
+			/>
+			<TabSwitcher
+				tabs={tabs}
+				open={tabSwitcherOpen}
+				selectedIndex={tabSwitcherIndex}
+				onSelectedIndexChange={setTabSwitcherIndex}
+				onCommit={(id) => {
+					const tab = tabs.find((t) => t.id === id);
+					if (tab) {
+						runtime
+							.openFile(tab.filePath)
+							.then((doc) => {
+								setActiveBuffer({
+									id: tab.filePath,
+									filePath: tab.filePath,
+									doc,
+								});
+							})
+							.catch(() => {
+								// no-op
+							});
+					}
+					setTabSwitcherOpen(false);
+				}}
+				onCancel={() => setTabSwitcherOpen(false)}
+			/>
+			<WhichKeyOverlay />
 		</div>
 	);
 }

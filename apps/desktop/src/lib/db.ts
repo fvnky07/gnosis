@@ -41,3 +41,37 @@ export async function readSchemaVersion(): Promise<number | null> {
 }
 
 export { CURRENT_SCHEMA_VERSION };
+
+// ---------------------------------------------------------------------------
+// FTS search
+// ---------------------------------------------------------------------------
+
+export interface FtsRow {
+	id: string;
+	filePath: string;
+	headlineRaw: string;
+	snippet: string;
+	rank: number;
+}
+
+export async function searchBlocks(
+	query: string,
+	limit = 50,
+): Promise<FtsRow[]> {
+	const trimmed = query.trim();
+	if (!trimmed) return [];
+	const db = await openDb();
+	const sql = `
+    SELECT b.id AS id,
+           b.file_path AS filePath,
+           b.headline_raw AS headlineRaw,
+           snippet(blocks_fts, 1, '<mark>', '</mark>', '…', 32) AS snippet,
+           bm25(blocks_fts) AS rank
+    FROM blocks_fts
+    JOIN blocks b ON b.rowid = blocks_fts.rowid
+    WHERE blocks_fts MATCH ?
+    ORDER BY rank
+    LIMIT ?;
+  `;
+	return db.select<FtsRow[]>(sql, [trimmed, limit]);
+}

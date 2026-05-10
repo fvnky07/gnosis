@@ -17,6 +17,7 @@
 		"@gnosis/editor": "workspace:*",
 		"@gnosis/palette": "workspace:*",
 		"@gnosis/ui": "workspace:*",
+		"@gnosis/vim-runtime": "workspace:*",
 		"@gnosis/views": "workspace:*",
 		"@tauri-apps/api": "^2",
 		"@tauri-apps/plugin-dialog": "^2",
