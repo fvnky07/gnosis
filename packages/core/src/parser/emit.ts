@@ -4,8 +4,16 @@ import { parsePlanningLine } from "./planning";
 import { parsePropertiesDrawer } from "./properties";
 import type { Block, NewBlock, OrgTimestamp, TodoState } from "./types";
 
-const HEADING_DECOMPOSE_RE = /^(\*+\s+)(TODO\s+|DONE\s+)?(.*)$/;
-const TRAILING_TAGS_RE = /\s+:(?:[A-Za-z0-9_@#%]+:)+\s*$/;
+// groups: 1 = stars + leading whitespace,
+//         2 = keyword + its trailing whitespace (undefined if absent),
+//         3 = the keyword's trailing whitespace alone (preserved on rewrite
+//             so a tab between TODO and the title isn't normalized to a
+//             single space — see PR #2 review feedback for the round-trip
+//             argument), 4 = the rest of the heading (title + tags).
+const HEADING_DECOMPOSE_RE = /^(\*+\s+)((?:TODO|DONE)(\s*))?(.*)$/;
+// Tag chars include Unicode letters / digits via `\p{L}\p{N}` (with `u`
+// flag) so headings like `:買い物:` and `:работа:` round-trip correctly.
+const TRAILING_TAGS_MATCH_RE = /(\s+)(:(?:[\p{L}\p{N}_@#%]+:)+)(\s*)$/u;
 
 /**
  * Splice-based mutation: rewrite the TODO keyword on a single heading.
@@ -25,11 +33,24 @@ export function emitToggleTodo(
 	const original = rawText.slice(headingLine.start, headingLine.end);
 	const match = HEADING_DECOMPOSE_RE.exec(original);
 	if (!match) return rawText;
-	const [, starsAndSpace, , rest] = match;
-	const updated =
-		target === null
-			? `${starsAndSpace}${rest}`
-			: `${starsAndSpace}${target} ${rest}`;
+	const [, starsAndSpace, keywordWithSpace, keywordTrailingWs = "", rest] =
+		match;
+
+	let updated: string;
+	if (target === null) {
+		if (!keywordWithSpace) return rawText;
+		updated = `${starsAndSpace}${rest}`;
+	} else if (keywordWithSpace) {
+		// Replace just the keyword token; preserve the original trailing
+		// whitespace (tab vs single space vs multi-space) verbatim.
+		updated = `${starsAndSpace}${target}${keywordTrailingWs}${rest}`;
+	} else {
+		// No keyword present — insert one. Add a single separating space
+		// only when there is title text after the keyword.
+		const sep = rest.length > 0 ? " " : "";
+		updated = `${starsAndSpace}${target}${sep}${rest}`;
+	}
+	if (updated === original) return rawText;
 	return spliceLine(rawText, headingLine, updated);
 }
 
@@ -46,9 +67,37 @@ export function emitSetTags(
 	if (!block) return rawText;
 	const headingLine = getHeadingLineRange(rawText, block.rangeInFile.start);
 	const original = rawText.slice(headingLine.start, headingLine.end);
-	const stripped = original.replace(TRAILING_TAGS_RE, "").trimEnd();
-	const updated =
-		tags.length === 0 ? stripped : `${stripped} :${tags.join(":")}:`;
+
+	const tagMatch = TRAILING_TAGS_MATCH_RE.exec(original);
+	let updated: string;
+
+	if (tagMatch) {
+		// Existing tag list found — splice replace just that region. Preserve
+		// any trailing whitespace that lived AFTER the tag list verbatim so
+		// repeated edits don't drift.
+		const fullMatchLength = tagMatch[0].length;
+		const matchStart = original.length - fullMatchLength;
+		const beforeTags = original.slice(0, matchStart);
+		const leadingWs = tagMatch[1];
+		const trailingWs = tagMatch[3];
+		if (tags.length === 0) {
+			updated = `${beforeTags}${trailingWs}`;
+		} else {
+			updated = `${beforeTags}${leadingWs}:${tags.join(":")}:${trailingWs}`;
+		}
+	} else {
+		// No existing tags. Clearing tags is a no-op; never touch whitespace
+		// that the user typed for some other reason.
+		if (tags.length === 0) return rawText;
+		const trailingWsMatch = /\s+$/.exec(original);
+		const trailing = trailingWsMatch ? trailingWsMatch[0] : "";
+		const trimmed = trailing
+			? original.slice(0, original.length - trailing.length)
+			: original;
+		updated = `${trimmed} :${tags.join(":")}:${trailing}`;
+	}
+
+	if (updated === original) return rawText;
 	return spliceLine(rawText, headingLine, updated);
 }
 
@@ -82,12 +131,17 @@ export function emitSetSchedule(
 	if (planning.lineStart !== -1) {
 		const absStart = sectionBodyStart + afterDrawerStart + planning.lineStart;
 		const absEnd = sectionBodyStart + afterDrawerStart + planning.lineEnd;
-		if (ts === null && !planning.deadline) {
+		if (ts === null && !planning.deadline && !planning.closed) {
+			// Nothing left worth keeping on the planning line.
 			return rawText.slice(0, absStart) + rawText.slice(absEnd);
 		}
 		const parts: string[] = [];
 		if (ts !== null) parts.push(`SCHEDULED: ${ts.raw}`);
 		if (planning.deadline) parts.push(`DEADLINE: ${planning.deadline.raw}`);
+		// Preserve a `CLOSED:` token if the user has logged a completion
+		// time — otherwise updating SCHEDULED would silently lose the log
+		// entry. See PR #2 review for the round-trip argument.
+		if (planning.closed) parts.push(`CLOSED: ${planning.closed.raw}`);
 		const replacement = `${parts.join(" ")}\n`;
 		return rawText.slice(0, absStart) + replacement + rawText.slice(absEnd);
 	}

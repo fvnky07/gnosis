@@ -31,10 +31,12 @@ describe("parsePlanningLine", () => {
 		expect(result.lineStart).toBe(-1);
 	});
 
-	it("ignores CLOSED token in MVP but still parses companions", () => {
+	it("captures CLOSED for round-trip preservation alongside companions", () => {
 		const text = "CLOSED: [2026-05-07 Thu 12:00] SCHEDULED: <2026-05-08 Fri>\n";
 		const result = parsePlanningLine(text);
 		expect(result.scheduled?.date).toBe("2026-05-08");
+		expect(result.closed?.date).toBe("2026-05-07");
+		expect(result.closed?.active).toBe(false);
 		expect(result.deadline).toBeUndefined();
 	});
 

@@ -99,6 +99,22 @@ body line two
 		).toBe(true);
 	});
 
+	it("warning ranges are absolute file offsets, not section-relative", () => {
+		// Preamble pushes the heading down; the unterminated-drawer warning
+		// must reference the absolute file position, not the section body.
+		const preamble = "#+TITLE: example\n\n";
+		const text = `${preamble}* h\n:PROPERTIES:\n:ID: 01J9\n`;
+		const result = parse(text, "/x.org");
+		const warning = result.warnings.find(
+			(w) => w.code === "unterminated-properties-drawer",
+		);
+		expect(warning?.range?.start).toBeGreaterThan(preamble.length);
+		// The reported start should land inside the actual `:PROPERTIES:` line
+		// in the source, not at byte 0.
+		const drawerIdx = text.indexOf(":PROPERTIES:");
+		expect(warning?.range?.start).toBe(drawerIdx);
+	});
+
 	it("treats body without drawer/planning as raw body", () => {
 		const text = "* h\nfirst\nsecond\n";
 		const result = parse(text, "/x.org");

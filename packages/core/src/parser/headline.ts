@@ -1,7 +1,9 @@
 import type { ParsedHeadline, Priority, TodoState } from "./types";
 
 const HEADING_RE = /^(\*+)\s+(.*)$/;
-const TRAILING_TAGS_RE = /\s+(:(?:[A-Za-z0-9_@#%]+:)+)\s*$/;
+// Tag chars: any letter/number (Unicode) plus `_@#%`. The Unicode property
+// classes catch Japanese, Cyrillic, Greek, etc. — the `u` flag activates them.
+const TRAILING_TAGS_RE = /\s+(:(?:[\p{L}\p{N}_@#%]+:)+)\s*$/u;
 const PRIORITY_RE = /^\[#([A-C])\]$/;
 
 /**

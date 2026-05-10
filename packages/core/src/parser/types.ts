@@ -29,11 +29,24 @@ export interface OrgTimestamp {
 	time?: string;
 }
 
-/** Half-open `[start, end)` byte range in a parent file. */
+/**
+ * Half-open `[start, end)` offset range into the source string.
+ *
+ * **Note:** these are JavaScript string indices (UTF-16 code units), NOT
+ * raw UTF-8 byte offsets. The legacy name is preserved for backwards
+ * compatibility with existing callers; new callers should prefer the
+ * {@link OffsetRange} alias which makes the unit explicit. Splice emitters
+ * in `emit.ts` and `mint-ids.ts` operate consistently in this same unit,
+ * so internal use is correct — only callers passing offsets across
+ * a UTF-8 boundary (e.g., a Rust process) need to translate.
+ */
 export interface ByteRange {
 	start: number;
 	end: number;
 }
+
+/** Alias for {@link ByteRange} that makes the offset unit explicit. */
+export type OffsetRange = ByteRange;
 
 /** A new block to append via {@link emitAppendBlock}. ID is minted by emit. */
 export interface NewBlock {

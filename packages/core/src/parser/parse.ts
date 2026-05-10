@@ -69,7 +69,12 @@ export function parse(rawText: string, sourcePath: string): ParseResult {
 		const sectionBody = rawText.slice(headingLineEnd, sectionEnd);
 
 		const propsResult = parsePropertiesDrawer(sectionBody);
-		for (const w of propsResult.warnings) warnings.push(w);
+		// `parsePropertiesDrawer` returns warnings whose `range` is relative
+		// to its input (`sectionBody`). Translate to absolute offsets in the
+		// full file so callers and UIs can highlight the right spot.
+		for (const w of propsResult.warnings) {
+			warnings.push(translateWarning(w, headingLineEnd));
+		}
 
 		const afterDrawerStart =
 			propsResult.drawerStart === -1 ? 0 : propsResult.drawerEnd;
@@ -155,6 +160,17 @@ function stripRanges(text: string, ranges: ByteRange[]): string {
 	}
 	if (cursor < text.length) result += text.slice(cursor);
 	return result;
+}
+
+function translateWarning(warning: ParseWarning, offset: number): ParseWarning {
+	if (!warning.range) return warning;
+	return {
+		...warning,
+		range: {
+			start: warning.range.start + offset,
+			end: warning.range.end + offset,
+		},
+	};
 }
 
 /**
