@@ -35,12 +35,47 @@ export interface PaletteCtx {
 	exec: PaletteExecutors;
 }
 
+export interface FileHit {
+	path: string;
+	title: string;
+	preview?: string;
+}
+
+export interface BlockHit {
+	id: string;
+	filePath: string;
+	headline: string;
+	snippet: string;
+	rank?: number;
+}
+
+export interface OutlineHit {
+	id: string;
+	filePath: string;
+	level: number;
+	headline: string;
+	line: number;
+}
+
+export interface TabHit {
+	id: string;
+	filePath: string;
+	title: string;
+	active?: boolean;
+}
+
 export interface PaletteExecutors {
 	captureJournal(text: string): Promise<void>;
 	captureTask(text: string): Promise<void>;
 	captureNote(text: string): Promise<void>;
 	openView(viewId: "journal" | "agenda" | "todos"): Promise<void>;
 	runCommand(commandId: string): Promise<void>;
+	listFiles(query: string): Promise<FileHit[]>;
+	searchBlocks(query: string): Promise<BlockHit[]>;
+	listOutline(filePath: string | null): Promise<OutlineHit[]>;
+	listTabs(): Promise<TabHit[]>;
+	openFile(path: string): Promise<void>;
+	openBlock(blockId: string): Promise<void>;
 }
 
 export interface PaletteItem {

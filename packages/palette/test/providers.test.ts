@@ -18,6 +18,12 @@ function makeCtx(overrides: Partial<PaletteCtx["exec"]> = {}): PaletteCtx {
 			captureNote: vi.fn(async () => {}),
 			openView: vi.fn(async () => {}),
 			runCommand: vi.fn(async () => {}),
+			listFiles: vi.fn(async () => []),
+			searchBlocks: vi.fn(async () => []),
+			listOutline: vi.fn(async () => []),
+			listTabs: vi.fn(async () => []),
+			openFile: vi.fn(async () => {}),
+			openBlock: vi.fn(async () => {}),
 			...overrides,
 		},
 	};
