@@ -7,6 +7,12 @@ const PLANNING_PAIR_RE = /(SCHEDULED|DEADLINE|CLOSED):\s*([<[][^>\]]*[>\]])/g;
 export interface PlanningParseResult {
 	scheduled?: OrgTimestamp;
 	deadline?: OrgTimestamp;
+	/**
+	 * `CLOSED:` is parsed for round-trip preservation but not stored on the
+	 * Document model. Splice emitters carry it through when rewriting the
+	 * planning line so a TODO log entry isn't lost when SCHEDULED changes.
+	 */
+	closed?: OrgTimestamp;
 	/** Byte offset of the planning line start. -1 if absent. */
 	lineStart: number;
 	/** Byte offset just AFTER the planning line (including its newline). -1 if absent. */
@@ -47,7 +53,7 @@ export function parsePlanningLine(text: string): PlanningParseResult {
 			if (ts) {
 				if (keyword === "SCHEDULED") result.scheduled = ts;
 				else if (keyword === "DEADLINE") result.deadline = ts;
-				// CLOSED ignored in MVP
+				else if (keyword === "CLOSED") result.closed = ts;
 			}
 			m = PLANNING_PAIR_RE.exec(line);
 		}

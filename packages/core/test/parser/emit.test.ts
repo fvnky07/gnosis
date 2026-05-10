@@ -35,6 +35,24 @@ describe("emitToggleTodo", () => {
 	it("returns unchanged when blockId is missing", () => {
 		expect(emitToggleTodo(SIMPLE_DOC, "missing", "DONE")).toBe(SIMPLE_DOC);
 	});
+
+	it("handles a heading whose only content is the keyword", () => {
+		// `* TODO` with no title text — `parseHeadline` accepts this shape.
+		const doc = "* TODO\n:PROPERTIES:\n:ID:       01J9\n:END:\n";
+		const result = emitToggleTodo(doc, "01J9", "DONE");
+		expect(result.startsWith("* DONE\n")).toBe(true);
+	});
+
+	it("preserves a tab between keyword and title verbatim", () => {
+		const doc = "*\tTODO\thello\n:PROPERTIES:\n:ID:       01J9\n:END:\n";
+		const result = emitToggleTodo(doc, "01J9", "DONE");
+		expect(result.startsWith("*\tDONE\thello\n")).toBe(true);
+	});
+
+	it("returns unchanged when clearing a keyword that isn't present", () => {
+		const result = emitToggleTodo(SIMPLE_DOC, "01J9", null);
+		expect(result).toBe(SIMPLE_DOC);
+	});
 });
 
 describe("emitSetTags", () => {
@@ -53,6 +71,26 @@ describe("emitSetTags", () => {
 		const doc = SIMPLE_DOC.replace("* heading", "* heading :old:");
 		const result = emitSetTags(doc, "01J9", []);
 		expect(result.startsWith("* heading\n")).toBe(true);
+	});
+
+	it("returns unchanged when clearing tags from a heading without tags", () => {
+		// Trailing whitespace on the heading line MUST not be touched in
+		// this case — `* heading   ` clearing tags is a no-op.
+		const doc = SIMPLE_DOC.replace("* heading", "* heading   ");
+		const result = emitSetTags(doc, "01J9", []);
+		expect(result).toBe(doc);
+	});
+
+	it("supports unicode tags", () => {
+		const doc = "* 牛乳を買う\n:PROPERTIES:\n:ID:       01J9\n:END:\n";
+		const result = emitSetTags(doc, "01J9", ["買い物", "работа"]);
+		expect(result.startsWith("* 牛乳を買う :買い物:работа:\n")).toBe(true);
+	});
+
+	it("replaces existing unicode tags", () => {
+		const doc = "* 牛乳を買う :買い物:\n:PROPERTIES:\n:ID:       01J9\n:END:\n";
+		const result = emitSetTags(doc, "01J9", ["работа"]);
+		expect(result.startsWith("* 牛乳を買う :работа:\n")).toBe(true);
 	});
 });
 
@@ -98,6 +136,29 @@ describe("emitSetSchedule", () => {
 		const result = emitSetSchedule(doc, "01J9", null);
 		expect(result).not.toContain("SCHEDULED:");
 		expect(result).toContain("DEADLINE: <2026-12-31 Thu>");
+	});
+
+	it("preserves CLOSED token when replacing SCHEDULED", () => {
+		const doc = SIMPLE_DOC.replace(
+			":END:\n",
+			":END:\nSCHEDULED: <2026-01-01 Thu> CLOSED: [2026-02-01 Sun 12:00]\n",
+		);
+		const newTs = parseOrgTimestamp("<2026-06-01 Mon>");
+		if (!newTs) throw new Error("setup");
+		const result = emitSetSchedule(doc, "01J9", newTs);
+		expect(result).toContain("SCHEDULED: <2026-06-01 Mon>");
+		expect(result).toContain("CLOSED: [2026-02-01 Sun 12:00]");
+		expect(result).not.toContain("SCHEDULED: <2026-01-01 Thu>");
+	});
+
+	it("preserves CLOSED on its own line when SCHEDULED is cleared", () => {
+		const doc = SIMPLE_DOC.replace(
+			":END:\n",
+			":END:\nSCHEDULED: <2026-01-01 Thu> CLOSED: [2026-02-01 Sun 12:00]\n",
+		);
+		const result = emitSetSchedule(doc, "01J9", null);
+		expect(result).not.toContain("SCHEDULED:");
+		expect(result).toContain("CLOSED: [2026-02-01 Sun 12:00]");
 	});
 });
 
