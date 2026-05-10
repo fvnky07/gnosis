@@ -1,0 +1,46 @@
+name: Feature request
+description: Propose a feature. Read `planning/14-roadmap-and-deferred.md` first.
+title: "feat: "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Many things are explicitly deferred — see
+        [`planning/14-roadmap-and-deferred.md`](https://github.com/fvnky07/gnosis/blob/main/planning/14-roadmap-and-deferred.md).
+        If your idea is on that list, file under the existing tracker rather
+        than opening a duplicate.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What user problem does this solve?
+      description: Concrete user scenario. Avoid "it would be nice if".
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Affected surface
+      multiple: true
+      options:
+        - palette
+        - editor
+        - vault / indexer
+        - parser
+        - views (journal/agenda/todos)
+        - shell / layout
+        - keymap / vim
+        - tauri / packaging
+        - other
+    validations:
+      required: true

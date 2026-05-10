@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "fs",
-  "description": "Filesystem access scoped to the user-selected vault directory.",
+  "description": "Filesystem access for user-selected vault directories. Grants read/write access to $HOME/** and /Volumes/** so vaults located anywhere under the user's home directory or on external volumes are reachable. This broad scope is intentional for the user-picks-vault story; tighten once Tauri supports dynamic capability scoping.",
   "windows": ["main"],
   "permissions": [
     "fs:default",
@@ -11,6 +11,13 @@
     "fs:allow-mkdir",
     "fs:allow-exists",
     "fs:allow-remove",
-    "fs:allow-rename"
+    "fs:allow-rename",
+    {
+      "identifier": "fs:scope",
+      "allow": [
+        { "path": "$HOME/**" },
+        { "path": "/Volumes/**" }
+      ]
+    }
   ]
 }
