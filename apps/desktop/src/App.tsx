@@ -1,7 +1,14 @@
-import { useEffect, useState } from "react";
+import { CommandPalette, type PaletteCtx } from "@gnosis/palette";
+import type { ViewBlock } from "@gnosis/views";
+import { useEffect, useMemo, useState } from "react";
+import { ResizeHandle } from "./components/ResizeHandle";
+import { RightSidebar } from "./components/RightSidebar";
+import { StatusBar } from "./components/StatusBar";
+import { EditorPane } from "./EditorPane";
 import { openDb, readSchemaVersion } from "./lib/db";
 import { error as logError, info as logInfo } from "./lib/log";
 import { ensureVaultPath } from "./lib/vault";
+import { usePaletteEngine } from "./use-palette";
 
 type BootstrapStatus =
 	| { kind: "starting" }
@@ -22,6 +29,25 @@ function isInsideTauri(): boolean {
 	};
 	return Boolean(w.__TAURI_INTERNALS__ ?? w.__TAURI__);
 }
+
+const SAMPLE_ORG = `#+TITLE: Welcome to gnosis
+
+* TODO try vim
+:PROPERTIES:
+:ID:       01J9DEMO0001
+:END:
+SCHEDULED: <2026-05-10 Sun>
+press \`Esc\` then \`i\` to enter INSERT mode and edit. Use \`:\` for ex commands.
+
+* DONE [#A] sanity check :demo:
+:PROPERTIES:
+:ID:       01J9DEMO0002
+:END:
+this is a static demo doc. file IO and indexer wiring land in the next slice.
+
+** child block :nested:
+tag inheritance demo
+`;
 
 export default function App() {
 	const [status, setStatus] = useState<BootstrapStatus>({ kind: "starting" });
@@ -61,6 +87,15 @@ export default function App() {
 		};
 	}, []);
 
+	if (status.kind === "ready") {
+		return (
+			<ReadyShell
+				vaultPath={status.vaultPath}
+				schemaVersion={status.schemaVersion}
+			/>
+		);
+	}
+
 	return (
 		<div className="flex h-dvh w-dvw items-center justify-center bg-background text-foreground">
 			<div className="max-w-md text-center">
@@ -70,6 +105,115 @@ export default function App() {
 				</p>
 				<div className="mt-6 text-sm">{renderStatus(status)}</div>
 			</div>
+		</div>
+	);
+}
+
+interface ReadyShellProps {
+	vaultPath: string;
+	schemaVersion: number | null;
+}
+
+function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
+	const { palette, commands, open, setOpen } = usePaletteEngine();
+	const ctx = useMemo<PaletteCtx>(
+		() => ({
+			vaultRoot: vaultPath,
+			activeFilePath: "demo.org",
+			selectedBlockId: null,
+			exec: {
+				captureJournal: async (text) => {
+					await logInfo(`palette: captureJournal — ${text}`);
+				},
+				captureTask: async (text) => {
+					await logInfo(`palette: captureTask — ${text}`);
+				},
+				captureNote: async (text) => {
+					await logInfo(`palette: captureNote — ${text}`);
+				},
+				openView: async (viewId) => {
+					await logInfo(`palette: openView — ${viewId}`);
+				},
+				runCommand: async (commandId) => {
+					const command = commands.get(commandId);
+					await logInfo(`palette: runCommand — ${commandId}`);
+					await command?.run(ctx);
+				},
+			},
+		}),
+		// `commands` is stable across renders; vaultPath changes only when the
+		// user re-picks a vault (which currently requires restart).
+		// biome-ignore lint/correctness/useExhaustiveDependencies: see comment
+		[vaultPath, commands],
+	);
+
+	const [sidebarOpen, setSidebarOpen] = useState(false);
+	const [rightWidth, setRightWidth] = useState(480);
+
+	useEffect(() => {
+		function onKeyDown(event: KeyboardEvent) {
+			const isMac =
+				typeof navigator !== "undefined" && /Mac/i.test(navigator.platform);
+			const summon = isMac ? event.metaKey : event.ctrlKey;
+			if (summon && event.shiftKey && event.key.toLowerCase() === "b") {
+				event.preventDefault();
+				setSidebarOpen((prev) => !prev);
+			}
+		}
+		window.addEventListener("keydown", onKeyDown);
+		return () => {
+			window.removeEventListener("keydown", onKeyDown);
+		};
+	}, []);
+
+	const sidebarWidth = sidebarOpen ? rightWidth : 0;
+	const sampleBlocks: ViewBlock[] = [];
+
+	return (
+		<div
+			className="grid h-dvh w-dvw bg-background text-foreground"
+			style={{
+				gridTemplateColumns: sidebarOpen ? `1fr 6px ${sidebarWidth}px` : "1fr",
+				gridTemplateRows: "1fr 24px",
+			}}
+		>
+			<EditorPane
+				bufferId="demo"
+				filePath="demo.org"
+				initialDoc={SAMPLE_ORG}
+				vimEnabled
+				onChange={() => {
+					// File-IO write-back wires up in the next slice.
+				}}
+				className="overflow-auto"
+			/>
+			{sidebarOpen ? (
+				<>
+					<ResizeHandle
+						width={rightWidth}
+						onWidthChange={setRightWidth}
+						onDoubleClick={() => setSidebarOpen(false)}
+					/>
+					<RightSidebar
+						blocks={sampleBlocks}
+						onClose={() => setSidebarOpen(false)}
+					/>
+				</>
+			) : null}
+			<StatusBar
+				className={sidebarOpen ? "col-span-3" : "col-span-1"}
+				mode="INSERT"
+				vaultPath={vaultPath}
+				indexStatus={`schema v${schemaVersion ?? "?"} · ⌘K palette · ⌘⇧B sidebar`}
+			/>
+			<CommandPalette
+				registry={palette}
+				commandRegistry={commands}
+				ctx={ctx}
+				open={open}
+				onClose={() => setOpen(false)}
+				className="fixed inset-x-0 top-20 mx-auto max-w-xl rounded-lg border border-border bg-popover text-popover-foreground shadow-2xl"
+			/>
 		</div>
 	);
 }
@@ -95,16 +239,7 @@ function renderStatus(status: BootstrapStatus) {
 				</span>
 			);
 		case "ready":
-			return (
-				<div className="space-y-1">
-					<p>
-						Vault: <code className="font-mono text-xs">{status.vaultPath}</code>
-					</p>
-					<p className="text-muted-foreground text-xs">
-						SQLite schema v{status.schemaVersion ?? "?"} ready.
-					</p>
-				</div>
-			);
+			return null;
 		case "error":
 			return (
 				<span className="text-red-500">Bootstrap error: {status.message}</span>

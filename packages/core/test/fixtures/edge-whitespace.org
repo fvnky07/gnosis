@@ -1,0 +1,12 @@
+#+TITLE:	Tabs and trailing whitespace
+
+* TODO	tabs in heading	:work:
+:PROPERTIES:
+:ID:       01J9TABEXAMPLE
+:CREATED:  [2026-05-06 Wed]
+:END:
+trailing spaces follow
+	indented body line with leading tab
+
+* heading with trailing spaces
+body

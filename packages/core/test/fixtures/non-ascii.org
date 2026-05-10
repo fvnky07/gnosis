@@ -1,0 +1,14 @@
+#+TITLE: 日本語のメモ
+
+* TODO 牛乳を買う :買い物:
+:PROPERTIES:
+:ID:       01J9UNICODE001
+:END:
+SCHEDULED: <2026-05-07 Thu 09:00>
+忘れずに
+
+* DONE рефакторинг парсера :работа:
+:PROPERTIES:
+:ID:       01J9UNICODE002
+:END:
+русский язык тест 🎉

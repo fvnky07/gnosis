@@ -1,0 +1,12 @@
+* a :a:
+text under a
+** b :b:
+text under b
+*** c :c:
+text under c
+*** another c :alt:
+parallel branch
+** sibling :sib:
+back at level 2
+* outer-sibling :other:
+not a descendant of a

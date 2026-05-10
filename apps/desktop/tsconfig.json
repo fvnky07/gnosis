@@ -19,6 +19,7 @@
 			"@gnosis/ui/*": ["../../packages/ui/src/*"],
 			"@gnosis/core": ["../../packages/core/src"],
 			"@gnosis/editor": ["../../packages/editor/src"],
+			"@gnosis/palette": ["../../packages/palette/src"],
 			"@gnosis/views": ["../../packages/views/src"],
 			"@gnosis/db": ["../../packages/db/src"],
 			"@gnosis/db/migrations": ["../../packages/db/src/migrations.ts"]

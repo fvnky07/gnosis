@@ -12,8 +12,24 @@
 		"check-types": "tsc --noEmit",
 		"test": "vitest run"
 	},
+	"dependencies": {
+		"@codemirror/autocomplete": "^6",
+		"@codemirror/commands": "^6",
+		"@codemirror/lang-markdown": "^6",
+		"@codemirror/language": "^6",
+		"@codemirror/search": "^6",
+		"@codemirror/state": "^6",
+		"@codemirror/view": "^6",
+		"@gnosis/core": "workspace:*",
+		"@replit/codemirror-vim": "^6.3"
+	},
+	"peerDependencies": {
+		"react": ">=19"
+	},
 	"devDependencies": {
 		"@gnosis/config": "workspace:*",
+		"@types/react": "^19.2.10",
+		"react": "^19.2.3",
 		"typescript": "^6",
 		"vitest": "^3"
 	}
