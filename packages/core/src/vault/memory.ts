@@ -1,4 +1,5 @@
 import type { FileMeta, Vault } from "./types";
+import { VaultNotFoundError } from "./types";
 
 interface MemoryFile {
 	content: string;
@@ -36,7 +37,7 @@ export class MemoryVault implements Vault {
 	async read(path: string): Promise<string> {
 		const file = this.files.get(path);
 		if (!file) {
-			throw new Error(`MemoryVault: file not found: ${path}`);
+			throw new VaultNotFoundError(path);
 		}
 		return file.content;
 	}

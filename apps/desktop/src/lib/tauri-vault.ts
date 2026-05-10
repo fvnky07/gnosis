@@ -10,6 +10,7 @@
  */
 
 import type { FileMeta, Vault } from "@gnosis/core";
+import { VaultNotFoundError } from "@gnosis/core";
 import {
 	exists,
 	mkdir,
@@ -40,7 +41,11 @@ export class TauriVault implements Vault {
 	}
 
 	async read(path: string): Promise<string> {
-		return await readTextFile(joinPath(this.rootPath, path));
+		const abs = joinPath(this.rootPath, path);
+		if (!(await exists(abs))) {
+			throw new VaultNotFoundError(path);
+		}
+		return await readTextFile(abs);
 	}
 
 	async write(path: string, content: string): Promise<void> {

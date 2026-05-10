@@ -15,6 +15,7 @@
 import { emitAppendBlock } from "../parser/emit";
 import type { NewBlock, OrgTimestamp } from "../parser/types";
 import type { Vault } from "../vault";
+import { VaultNotFoundError } from "../vault";
 
 export type CaptureKind = "journal" | "task" | "note";
 
@@ -49,44 +50,68 @@ interface ParsedSchedule {
 	scheduled: OrgTimestamp;
 }
 
-const ISO_DATE_RE = /^(.*)\s+(\d{4}-\d{2}-\d{2})$/;
-const TODAY_RE = /^(.*)\s+today$/i;
-const TOMORROW_RE = /^(.*)\s+tomorrow$/i;
-
 /**
  * Strip a trailing schedule keyword (`today`, `tomorrow`, ISO date) from
  * `text` and return the cleaned title plus the resolved timestamp. Falls
  * back to scheduling on `now` when nothing matches.
+ *
+ * Uses token splitting instead of `(.*)` regexes to avoid polynomial
+ * backtracking (ReDoS) on inputs with many repeated spaces.
+ *
+ * When the entire input is a bare keyword/date (no title prefix), the
+ * original text is kept as the title so the caller never produces an
+ * empty heading.
  */
 export function parseTaskSchedule(text: string, now: Date): ParsedSchedule {
 	const trimmed = text.trim();
-	const today = TODAY_RE.exec(trimmed);
-	if (today?.[1]) {
-		return { title: today[1].trim(), scheduled: formatOrgDate(now) };
+
+	// Split on any run of whitespace so there is no ambiguous overlap
+	// between the "body" and the trailing keyword that could cause ReDoS.
+	const tokens = trimmed.split(/\s+/);
+	const lastToken = tokens[tokens.length - 1] ?? "";
+	const prefix = tokens.slice(0, -1).join(" ");
+
+	if (/^today$/i.test(lastToken)) {
+		// If prefix is empty the user typed only the keyword; keep the
+		// original text rather than producing an empty title.
+		return {
+			title: prefix || trimmed,
+			scheduled: formatOrgDate(now),
+		};
 	}
-	const tomorrow = TOMORROW_RE.exec(trimmed);
-	if (tomorrow?.[1]) {
+
+	if (/^tomorrow$/i.test(lastToken)) {
 		const t = new Date(now);
 		t.setDate(t.getDate() + 1);
-		return { title: tomorrow[1].trim(), scheduled: formatOrgDate(t) };
+		return {
+			title: prefix || trimmed,
+			scheduled: formatOrgDate(t),
+		};
 	}
-	const iso = ISO_DATE_RE.exec(trimmed);
-	if (iso?.[1] && iso[2]) {
-		const [y, m, d] = iso[2].split("-").map(Number);
-		if (
-			y !== undefined &&
-			m !== undefined &&
-			d !== undefined &&
-			!Number.isNaN(y) &&
-			!Number.isNaN(m) &&
-			!Number.isNaN(d)
-		) {
-			return {
-				title: iso[1].trim(),
-				scheduled: formatOrgDate(new Date(y, m - 1, d)),
-			};
+
+	if (/^\d{4}-\d{2}-\d{2}$/.test(lastToken)) {
+		const [y, m, d] = lastToken.split("-").map(Number) as [
+			number,
+			number,
+			number,
+		];
+		if (!Number.isNaN(y) && !Number.isNaN(m) && !Number.isNaN(d)) {
+			const constructed = new Date(y, m - 1, d);
+			// Validate that the JS Date didn't silently normalize an
+			// out-of-range value (e.g. Feb 31 → Mar 3, month 13 → next year).
+			if (
+				constructed.getFullYear() === y &&
+				constructed.getMonth() === m - 1 &&
+				constructed.getDate() === d
+			) {
+				return {
+					title: prefix || trimmed,
+					scheduled: formatOrgDate(constructed),
+				};
+			}
 		}
 	}
+
 	return { title: trimmed, scheduled: formatOrgDate(now) };
 }
 
@@ -131,7 +156,8 @@ export async function captureToVault(
 	let fileCreated = false;
 	try {
 		original = await vault.read(filePath);
-	} catch {
+	} catch (err) {
+		if (!(err instanceof VaultNotFoundError)) throw err;
 		fileCreated = true;
 		const yyyy = now.getFullYear();
 		const mm = pad2(now.getMonth() + 1);

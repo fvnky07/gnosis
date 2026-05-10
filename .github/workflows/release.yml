@@ -47,10 +47,15 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Install Rust toolchain
+      - name: Install Rust toolchain (macOS — cross-compile targets)
+        if: matrix.platform == 'macos-latest'
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+          targets: "aarch64-apple-darwin,x86_64-apple-darwin"
+
+      - name: Install Rust toolchain
+        if: matrix.platform != 'macos-latest'
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Cache cargo registry & target
         uses: actions/cache@v4
