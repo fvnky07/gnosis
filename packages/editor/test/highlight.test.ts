@@ -63,12 +63,10 @@ describe("findOrgTokens", () => {
 		const tokens = findOrgTokens(text);
 		const drawerTokens = tokens.filter((t) => t.kind === "drawer-marker");
 		expect(drawerTokens).toHaveLength(2);
-		expect(text.slice(drawerTokens[0].start, drawerTokens[0].end)).toBe(
-			":PROPERTIES:",
-		);
-		expect(text.slice(drawerTokens[1].start, drawerTokens[1].end)).toBe(
-			":END:",
-		);
+		const [first, second] = drawerTokens;
+		if (!first || !second) throw new Error("expected two drawer tokens");
+		expect(text.slice(first.start, first.end)).toBe(":PROPERTIES:");
+		expect(text.slice(second.start, second.end)).toBe(":END:");
 	});
 
 	it("locates #+TITLE and other file keywords", () => {
@@ -83,7 +81,10 @@ describe("findOrgTokens", () => {
 			"#+TITLE: Doc\n* TODO [#A] task :work:\n:PROPERTIES:\n:ID: 01J9\n:END:\nSCHEDULED: <2026-05-07 Thu>\nbody";
 		const tokens = findOrgTokens(text);
 		for (let i = 1; i < tokens.length; i++) {
-			expect(tokens[i].start).toBeGreaterThanOrEqual(tokens[i - 1].start);
+			const cur = tokens[i];
+			const prev = tokens[i - 1];
+			if (!cur || !prev) throw new Error("token gap");
+			expect(cur.start).toBeGreaterThanOrEqual(prev.start);
 		}
 	});
 

@@ -18,12 +18,16 @@ export function parseFileKeywords(preamble: string): FileKeywords {
 	const lines = preamble.split("\n");
 	for (const line of lines) {
 		const titleMatch = TITLE_RE.exec(line);
-		if (titleMatch && result.title === undefined) {
+		if (
+			titleMatch &&
+			titleMatch[1] !== undefined &&
+			result.title === undefined
+		) {
 			result.title = titleMatch[1].trim();
 			continue;
 		}
 		const tagsMatch = FILETAGS_RE.exec(line);
-		if (tagsMatch) {
+		if (tagsMatch && tagsMatch[1] !== undefined) {
 			result.fileTags = parseFileTagsValue(tagsMatch[1]);
 		}
 	}

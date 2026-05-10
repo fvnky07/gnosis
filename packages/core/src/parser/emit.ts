@@ -35,6 +35,7 @@ export function emitToggleTodo(
 	if (!match) return rawText;
 	const [, starsAndSpace, keywordWithSpace, keywordTrailingWs = "", rest] =
 		match;
+	if (starsAndSpace === undefined || rest === undefined) return rawText;
 
 	let updated: string;
 	if (target === null) {

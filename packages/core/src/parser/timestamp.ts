@@ -26,6 +26,12 @@ export function parseOrgTimestamp(raw: string): OrgTimestamp | null {
 	const m = TIMESTAMP_RE.exec(raw);
 	if (!m) return null;
 	const [, open, date, time, close] = m;
+	// Required groups must be present whenever the regex matches; the explicit
+	// guards both narrow TS's `string | undefined` typing for indexed regex
+	// groups and act as a defensive bound against future regex edits.
+	if (open === undefined || date === undefined || close === undefined) {
+		return null;
+	}
 	const isActive = open === "<";
 	const isClosingActive = close === ">";
 	if (isActive !== isClosingActive) return null;

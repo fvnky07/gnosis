@@ -27,6 +27,7 @@ export function mintIds(rawText: string): MintIdsResult {
 
 	for (let i = parseResult.document.blocks.length - 1; i >= 0; i--) {
 		const block = parseResult.document.blocks[i];
+		if (!block) continue;
 		if (block.id !== "") continue;
 
 		const headingLineEnd = newText.indexOf("\n", block.rangeInFile.start);

@@ -18,6 +18,7 @@ export default defineConfig({
 			"@gnosis/ui": path.resolve(__dirname, "../../packages/ui/src"),
 			"@gnosis/core": path.resolve(__dirname, "../../packages/core/src"),
 			"@gnosis/editor": path.resolve(__dirname, "../../packages/editor/src"),
+			"@gnosis/palette": path.resolve(__dirname, "../../packages/palette/src"),
 			"@gnosis/views": path.resolve(__dirname, "../../packages/views/src"),
 			"@gnosis/db/migrations": path.resolve(
 				__dirname,

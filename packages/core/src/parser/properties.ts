@@ -75,7 +75,9 @@ export function parsePropertiesDrawer(text: string): PropertiesParseResult {
 		const propMatch = PROPERTY_LINE_RE.exec(lineText);
 		if (propMatch) {
 			const [, key, value] = propMatch;
-			properties[key] = value.trimEnd();
+			if (key !== undefined && value !== undefined) {
+				properties[key] = value.trimEnd();
+			}
 		}
 		if (nextEnd === -1) break;
 		cursor = nextEnd + 1;

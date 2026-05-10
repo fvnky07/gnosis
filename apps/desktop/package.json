@@ -15,6 +15,7 @@
 		"@gnosis/core": "workspace:*",
 		"@gnosis/db": "workspace:*",
 		"@gnosis/editor": "workspace:*",
+		"@gnosis/palette": "workspace:*",
 		"@gnosis/ui": "workspace:*",
 		"@gnosis/views": "workspace:*",
 		"@tauri-apps/api": "^2",

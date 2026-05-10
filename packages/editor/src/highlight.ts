@@ -17,10 +17,12 @@ export function findOrgTokens(text: string): OrgToken[] {
 	for (const m of text.matchAll(TODO_RE)) {
 		const idx = m.index ?? 0;
 		const stars = m[1];
+		const keyword = m[2];
+		if (stars === undefined || keyword === undefined) continue;
 		tokens.push({
 			kind: "todo-keyword",
 			start: idx + stars.length,
-			end: idx + stars.length + m[2].length,
+			end: idx + stars.length + keyword.length,
 		});
 	}
 
@@ -37,6 +39,7 @@ export function findOrgTokens(text: string): OrgToken[] {
 		const idx = m.index ?? 0;
 		const headPart = m[1];
 		const tagsWithLead = m[2];
+		if (headPart === undefined || tagsWithLead === undefined) continue;
 		const leadingSpace = tagsWithLead.length - tagsWithLead.trimStart().length;
 		const tagStart = idx + headPart.length + leadingSpace;
 		const tagEnd = tagStart + tagsWithLead.trimStart().length;

@@ -49,11 +49,13 @@ export function parsePlanningLine(text: string): PlanningParseResult {
 		let m: RegExpExecArray | null = PLANNING_PAIR_RE.exec(line);
 		while (m !== null) {
 			const [, keyword, raw] = m;
-			const ts = parseOrgTimestamp(raw);
-			if (ts) {
-				if (keyword === "SCHEDULED") result.scheduled = ts;
-				else if (keyword === "DEADLINE") result.deadline = ts;
-				else if (keyword === "CLOSED") result.closed = ts;
+			if (raw !== undefined) {
+				const ts = parseOrgTimestamp(raw);
+				if (ts) {
+					if (keyword === "SCHEDULED") result.scheduled = ts;
+					else if (keyword === "DEADLINE") result.deadline = ts;
+					else if (keyword === "CLOSED") result.closed = ts;
+				}
 			}
 			m = PLANNING_PAIR_RE.exec(line);
 		}

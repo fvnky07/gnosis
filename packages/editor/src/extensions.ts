@@ -10,7 +10,6 @@ import {
 	indentWithTab,
 } from "@codemirror/commands";
 import { markdown } from "@codemirror/lang-markdown";
-import { syntaxHighlighting } from "@codemirror/language";
 import { searchKeymap } from "@codemirror/search";
 import { type Extension, RangeSetBuilder } from "@codemirror/state";
 import {

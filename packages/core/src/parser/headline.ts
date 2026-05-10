@@ -21,18 +21,24 @@ const PRIORITY_RE = /^\[#([A-C])\]$/;
 export function parseHeadline(line: string): ParsedHeadline | null {
 	const headingMatch = HEADING_RE.exec(line);
 	if (!headingMatch) return null;
-	const level = headingMatch[1].length;
-	let rest = headingMatch[2];
+	const stars = headingMatch[1];
+	const headingTail = headingMatch[2];
+	if (stars === undefined || headingTail === undefined) return null;
+	const level = stars.length;
+	let rest = headingTail;
 
 	// Strip trailing tags first so the title doesn't accidentally include them.
 	let tags: string[] = [];
 	const tagMatch = TRAILING_TAGS_RE.exec(rest);
 	if (tagMatch) {
-		tags = tagMatch[1]
-			.split(":")
-			.filter(Boolean)
-			.map((t) => t.toLowerCase());
-		rest = rest.slice(0, tagMatch.index);
+		const tagBody = tagMatch[1];
+		if (tagBody !== undefined) {
+			tags = tagBody
+				.split(":")
+				.filter(Boolean)
+				.map((t) => t.toLowerCase());
+			rest = rest.slice(0, tagMatch.index);
+		}
 	}
 
 	rest = rest.trim();
@@ -48,7 +54,7 @@ export function parseHeadline(line: string): ParsedHeadline | null {
 	const priCandidate = tokens[cursor];
 	if (priCandidate) {
 		const priMatch = PRIORITY_RE.exec(priCandidate);
-		if (priMatch) {
+		if (priMatch?.[1]) {
 			priority = priMatch[1] as Priority;
 			cursor++;
 		}

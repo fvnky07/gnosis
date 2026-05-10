@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { CommandPalette, type PaletteCtx } from "@gnosis/palette";
+import { useEffect, useMemo, useState } from "react";
 import { EditorPane } from "./EditorPane";
 import { openDb, readSchemaVersion } from "./lib/db";
 import { error as logError, info as logInfo } from "./lib/log";
 import { ensureVaultPath } from "./lib/vault";
+import { usePaletteEngine } from "./use-palette";
 
 type BootstrapStatus =
 	| { kind: "starting" }
@@ -83,26 +85,10 @@ export default function App() {
 
 	if (status.kind === "ready") {
 		return (
-			<div className="flex h-dvh w-dvw flex-col bg-background text-foreground">
-				<header className="flex items-baseline justify-between border-border border-b px-4 py-2 text-xs">
-					<span className="font-semibold">gnosis</span>
-					<span className="text-muted-foreground">
-						<code className="font-mono">{status.vaultPath}</code>
-						{" · "}
-						schema v{status.schemaVersion ?? "?"}
-					</span>
-				</header>
-				<EditorPane
-					bufferId="demo"
-					filePath="demo.org"
-					initialDoc={SAMPLE_ORG}
-					vimEnabled
-					onChange={() => {
-						// File-IO write-back wires up in the next slice.
-					}}
-					className="flex-1 overflow-auto"
-				/>
-			</div>
+			<ReadyShell
+				vaultPath={status.vaultPath}
+				schemaVersion={status.schemaVersion}
+			/>
 		);
 	}
 
@@ -115,6 +101,78 @@ export default function App() {
 				</p>
 				<div className="mt-6 text-sm">{renderStatus(status)}</div>
 			</div>
+		</div>
+	);
+}
+
+interface ReadyShellProps {
+	vaultPath: string;
+	schemaVersion: number | null;
+}
+
+function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
+	const { palette, commands, open, setOpen } = usePaletteEngine();
+	const ctx = useMemo<PaletteCtx>(
+		() => ({
+			vaultRoot: vaultPath,
+			activeFilePath: "demo.org",
+			selectedBlockId: null,
+			exec: {
+				captureJournal: async (text) => {
+					await logInfo(`palette: captureJournal — ${text}`);
+				},
+				captureTask: async (text) => {
+					await logInfo(`palette: captureTask — ${text}`);
+				},
+				captureNote: async (text) => {
+					await logInfo(`palette: captureNote — ${text}`);
+				},
+				openView: async (viewId) => {
+					await logInfo(`palette: openView — ${viewId}`);
+				},
+				runCommand: async (commandId) => {
+					const command = commands.get(commandId);
+					await logInfo(`palette: runCommand — ${commandId}`);
+					await command?.run(ctx);
+				},
+			},
+		}),
+		// `commands` is stable across renders; vaultPath changes only when the
+		// user re-picks a vault (which currently requires restart).
+		// biome-ignore lint/correctness/useExhaustiveDependencies: see comment
+		[vaultPath, commands],
+	);
+
+	return (
+		<div className="flex h-dvh w-dvw flex-col bg-background text-foreground">
+			<header className="flex items-baseline justify-between border-border border-b px-4 py-2 text-xs">
+				<span className="font-semibold">gnosis</span>
+				<span className="text-muted-foreground">
+					<code className="font-mono">{vaultPath}</code>
+					{" · "}
+					schema v{schemaVersion ?? "?"}
+					{" · "}
+					<span className="opacity-70">⌘K palette</span>
+				</span>
+			</header>
+			<EditorPane
+				bufferId="demo"
+				filePath="demo.org"
+				initialDoc={SAMPLE_ORG}
+				vimEnabled
+				onChange={() => {
+					// File-IO write-back wires up in the next slice.
+				}}
+				className="flex-1 overflow-auto"
+			/>
+			<CommandPalette
+				registry={palette}
+				commandRegistry={commands}
+				ctx={ctx}
+				open={open}
+				onClose={() => setOpen(false)}
+				className="fixed inset-x-0 top-20 mx-auto max-w-xl rounded-lg border border-border bg-popover text-popover-foreground shadow-2xl"
+			/>
 		</div>
 	);
 }

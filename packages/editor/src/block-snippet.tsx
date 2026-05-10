@@ -23,8 +23,9 @@ export function BlockSnippet({
 	const tokens = findOrgTokens(text);
 	const segments: ReactNode[] = [];
 	let cursor = 0;
-	for (let i = 0; i < tokens.length; i++) {
-		const token = tokens[i];
+	let tokenIndex = 0;
+	for (const token of tokens) {
+		const i = tokenIndex++;
 		if (token.start < cursor) continue; // tokens may overlap; first wins
 		if (token.start > cursor) {
 			segments.push(

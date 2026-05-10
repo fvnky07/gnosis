@@ -132,9 +132,13 @@ function toDbRow(
 }
 
 function findParentId(blocks: ParsedBlock[], idx: number): string | null {
-	const myLevel = blocks[idx].level;
+	const me = blocks[idx];
+	if (!me) return null;
+	const myLevel = me.level;
 	for (let i = idx - 1; i >= 0; i--) {
-		if (blocks[i].level < myLevel) return blocks[i].id;
+		const candidate = blocks[i];
+		if (!candidate) continue;
+		if (candidate.level < myLevel) return candidate.id;
 	}
 	return null;
 }

@@ -35,15 +35,17 @@ export function parse(rawText: string, sourcePath: string): ParseResult {
 	for (let i = 0; i < lineStarts.length - 1; i++) {
 		const lineStart = lineStarts[i];
 		const lineEnd = lineStarts[i + 1];
+		if (lineStart === undefined || lineEnd === undefined) continue;
 		const lineText = trimTrailingNewline(rawText.slice(lineStart, lineEnd));
 		if (HEADING_RE.test(lineText)) {
 			headingLineIndices.push(i);
 		}
 	}
 
+	const firstHeadingLineIdx = headingLineIndices[0];
 	const preambleEnd =
-		headingLineIndices.length > 0
-			? lineStarts[headingLineIndices[0]]
+		firstHeadingLineIdx !== undefined
+			? (lineStarts[firstHeadingLineIdx] ?? rawText.length)
 			: rawText.length;
 	const preamble = rawText.slice(0, preambleEnd);
 	const fileKeywords = parseFileKeywords(preamble);
@@ -53,13 +55,22 @@ export function parse(rawText: string, sourcePath: string): ParseResult {
 
 	for (let h = 0; h < headingLineIndices.length; h++) {
 		const headingLineIdx = headingLineIndices[h];
+		if (headingLineIdx === undefined) continue;
 		const sectionStart = lineStarts[headingLineIdx];
-		const sectionEnd =
-			h + 1 < headingLineIndices.length
-				? lineStarts[headingLineIndices[h + 1]]
-				: rawText.length;
+		if (sectionStart === undefined) continue;
+		let sectionEnd: number;
+		if (h + 1 < headingLineIndices.length) {
+			const nextHeadingLineIdx = headingLineIndices[h + 1];
+			if (nextHeadingLineIdx === undefined) continue;
+			const candidate = lineStarts[nextHeadingLineIdx];
+			if (candidate === undefined) continue;
+			sectionEnd = candidate;
+		} else {
+			sectionEnd = rawText.length;
+		}
 
 		const headingLineEnd = lineStarts[headingLineIdx + 1];
+		if (headingLineEnd === undefined) continue;
 		const headingLineText = trimTrailingNewline(
 			rawText.slice(sectionStart, headingLineEnd),
 		);
@@ -187,10 +198,13 @@ function applyTagInheritance(
 	for (let i = 0; i < blocks.length; i++) {
 		const block = blocks[i];
 		const localTags = localTagsPerBlock[i];
-		while (
-			ancestors.length > 0 &&
-			ancestors[ancestors.length - 1].level >= block.level
-		) {
+		// `noUncheckedIndexedAccess` makes both lookups string|undefined; in
+		// practice they're always defined since we walk a parallel index
+		// established a few lines above.
+		if (!block || !localTags) continue;
+		while (ancestors.length > 0) {
+			const top = ancestors[ancestors.length - 1];
+			if (!top || top.level < block.level) break;
 			ancestors.pop();
 		}
 		const effective = new Set<string>(fileTags);

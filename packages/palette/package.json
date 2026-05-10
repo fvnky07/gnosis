@@ -1,5 +1,5 @@
 {
-	"name": "@gnosis/views",
+	"name": "@gnosis/palette",
 	"version": "0.0.0",
 	"private": true,
 	"type": "module",
@@ -10,10 +10,19 @@
 	},
 	"scripts": {
 		"check-types": "tsc --noEmit",
-		"test": "vitest run --passWithNoTests"
+		"test": "vitest run"
+	},
+	"dependencies": {
+		"@gnosis/core": "workspace:*",
+		"cmdk": "^1.1"
+	},
+	"peerDependencies": {
+		"react": ">=19"
 	},
 	"devDependencies": {
 		"@gnosis/config": "workspace:*",
+		"@types/react": "^19.2.10",
+		"react": "^19.2.3",
 		"typescript": "^6",
 		"vitest": "^3"
 	}
