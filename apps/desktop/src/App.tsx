@@ -9,7 +9,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BlockDetailsPopover } from "./components/BlockDetailsPopover";
 import { ResizeHandle } from "./components/ResizeHandle";
-import { RightSidebar } from "./components/RightSidebar";
+import { RightSidebar, type ViewKind } from "./components/RightSidebar";
 import { StatusBar } from "./components/StatusBar";
 import { TabSwitcher } from "./components/TabSwitcher";
 import { EditorPane } from "./EditorPane";
@@ -131,6 +131,17 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 		doc: string;
 	}>({ id: "welcome", filePath: "(welcome)", doc: WELCOME_ORG });
 
+	// ── right sidebar ─────────────────────────────────────────────────────────
+	const [sidebarOpen, setSidebarOpen] = useState(true);
+	const [rightWidth, setRightWidth] = useState(480);
+	const [sidebarView, setSidebarView] = useState<ViewKind>("journal");
+
+	const openSidebarView = useCallback((id: string) => {
+		const next: ViewKind = id === "agenda" || id === "todos" ? id : "journal";
+		setSidebarView(next);
+		setSidebarOpen(true);
+	}, []);
+
 	const refresh = useCallback(async () => {
 		const next = await runtime.loadViewBlocks();
 		setBlocks(next);
@@ -227,7 +238,7 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 					await refresh();
 				},
 				openView: async (viewId) => {
-					await logInfo(`palette: openView — ${viewId}`);
+					openSidebarView(viewId);
 				},
 				runCommand: async (commandId) => {
 					const command = commands.get(commandId);
@@ -266,7 +277,14 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 		}),
 		// `commands` and `runtime` are stable across renders; `refresh` is
 		// memoized on `runtime`. vaultPath changes only when the user re-picks.
-		[vaultPath, activeBuffer.filePath, commands, runtime, refresh],
+		[
+			vaultPath,
+			activeBuffer.filePath,
+			commands,
+			runtime,
+			refresh,
+			openSidebarView,
+		],
 	);
 
 	// ── vim host bindings (editor ex commands) ────────────────────────────────
@@ -309,7 +327,7 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 				setOpen(true);
 			},
 			openView: async (id) => {
-				await logInfo(`vimHostBindings: openView — ${id}`);
+				openSidebarView(id);
 			},
 			openVault: async () => {
 				// TODO: open vault picker dialog
@@ -328,12 +346,13 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 				// TODO: multi-tab close
 			},
 		}),
-		[runtime, refresh, setOpen],
+		[runtime, refresh, setOpen, openSidebarView],
 	);
 
 	// ── layout state ──────────────────────────────────────────────────────────
-	const [sidebarOpen, setSidebarOpen] = useState(true);
-	const [rightWidth, setRightWidth] = useState(480);
+	// sidebar state lives here so `ctx.exec.openView` (defined below) can
+	// drive the right sidebar from palette/leader/ex commands. The actual
+	// `<RightSidebar>` mount is in the JSX further down.
 
 	useEffect(() => {
 		function onKeyDown(event: KeyboardEvent) {
@@ -459,7 +478,12 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 						onWidthChange={setRightWidth}
 						onDoubleClick={() => setSidebarOpen(false)}
 					/>
-					<RightSidebar blocks={blocks} onClose={() => setSidebarOpen(false)} />
+					<RightSidebar
+						blocks={blocks}
+						view={sidebarView}
+						onViewChange={setSidebarView}
+						onClose={() => setSidebarOpen(false)}
+					/>
 				</>
 			) : null}
 			<StatusBar
