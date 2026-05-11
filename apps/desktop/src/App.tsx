@@ -178,6 +178,10 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 		[openPane],
 	);
 
+	// ViewBlock already carries `filePath`, so we skip the `runtime.openBlock`
+	// DB roundtrip the palette uses. Both currently land on the same buffer
+	// (neither jumps to a line yet); revisit if line-jumping is added and
+	// route both paths through a shared helper to avoid divergence.
 	const handleOpenBlock = useCallback<OnOpenBlock>(
 		(block) => {
 			void (async () => {

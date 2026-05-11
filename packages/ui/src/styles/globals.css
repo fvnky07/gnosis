@@ -327,8 +327,11 @@
 	--sx-color-on-background: var(--card-foreground);
 	--sx-color-surface: var(--background);
 	--sx-color-on-surface: var(--foreground);
+	/* Elevation tiers: -low for grid rows, neutral container for week-header
+	 * strip, -high for hover/selection. Keeping a visible step between them
+	 * preserves Schedule-X's intended visual hierarchy. */
+	--sx-color-surface-container-low: var(--background);
 	--sx-color-surface-container: var(--muted);
-	--sx-color-surface-container-low: var(--muted);
 	--sx-color-surface-container-high: var(--accent);
 	--sx-color-on-surface-variant: var(--muted-foreground);
 	--sx-color-outline: var(--border);
