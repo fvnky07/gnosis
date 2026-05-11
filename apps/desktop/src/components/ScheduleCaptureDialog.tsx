@@ -20,12 +20,14 @@ import {
 	DialogTitle,
 } from "@gnosis/ui/components/dialog";
 import { Input } from "@gnosis/ui/components/input";
+import { Label } from "@gnosis/ui/components/label";
 import { useEffect, useRef, useState } from "react";
 import { useCalendarVimNav } from "../lib/use-calendar-vim-nav";
 import {
 	DateTimePicker24h,
 	type DateTimePickerValue,
 } from "./DateTimePicker24h";
+import { Kbd } from "./SettingsControls";
 
 export interface ScheduleSubmitInput {
 	title: string;
@@ -118,58 +120,44 @@ export function ScheduleCaptureDialog({
 			<DialogContent
 				ref={contentRef}
 				onKeyDown={handleKeyDown}
-				className="max-w-[560px] gap-4 p-0"
+				className="max-w-[640px] gap-4 p-0"
 			>
 				<DialogHeader className="px-4 pt-4">
 					<DialogTitle>Schedule</DialogTitle>
 					<DialogDescription>
-						Drop a TODO onto a future day in your vault. Press{" "}
-						<kbd className="rounded border border-border px-1 font-mono text-[11px]">
-							⇧hjkl
-						</kbd>{" "}
+						Drop a TODO onto a future day in your vault. Press <Kbd>⇧hjkl</Kbd>{" "}
 						to navigate without lifting your hands.
 					</DialogDescription>
 				</DialogHeader>
-				<div className="flex flex-col gap-3 px-4 pb-3">
-					<Input
-						ref={titleRef}
-						placeholder="What needs scheduling?"
-						value={title}
-						onChange={(e) => setTitle(e.target.value)}
-					/>
+				<div className="flex flex-col gap-4 px-4 pb-3">
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="schedule-title">Title</Label>
+						<Input
+							id="schedule-title"
+							ref={titleRef}
+							placeholder="What needs scheduling?"
+							value={title}
+							onChange={(e) => setTitle(e.target.value)}
+						/>
+					</div>
 					<DateTimePicker24h value={value} onChange={setValue} />
 				</div>
 				<DialogFooter className="border-t px-4 py-2 text-muted-foreground text-xs sm:justify-between">
 					<div className="flex flex-wrap items-center gap-3">
-						<span>
-							<kbd className="rounded border border-border px-1 font-mono text-[10px]">
-								↵
-							</kbd>{" "}
-							save
+						<span className="flex items-center gap-1">
+							<Kbd>↵</Kbd> save
 						</span>
-						<span>
-							<kbd className="rounded border border-border px-1 font-mono text-[10px]">
-								esc
-							</kbd>{" "}
-							cancel
+						<span className="flex items-center gap-1">
+							<Kbd>esc</Kbd> cancel
 						</span>
-						<span>
-							<kbd className="rounded border border-border px-1 font-mono text-[10px]">
-								⇧H/L
-							</kbd>{" "}
-							day
+						<span className="flex items-center gap-1">
+							<Kbd>⇧H/L</Kbd> day
 						</span>
-						<span>
-							<kbd className="rounded border border-border px-1 font-mono text-[10px]">
-								⇧J/K
-							</kbd>{" "}
-							week
+						<span className="flex items-center gap-1">
+							<Kbd>⇧J/K</Kbd> week
 						</span>
-						<span>
-							<kbd className="rounded border border-border px-1 font-mono text-[10px]">
-								⇧W/B
-							</kbd>{" "}
-							month
+						<span className="flex items-center gap-1">
+							<Kbd>⇧W/B</Kbd> month
 						</span>
 					</div>
 					<Button

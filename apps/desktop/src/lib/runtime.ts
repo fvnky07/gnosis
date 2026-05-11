@@ -22,6 +22,7 @@ import {
 	parseHeadline,
 	type ScheduledCaptureInput,
 	type ScheduledCaptureResult,
+	VaultNotFoundError,
 } from "@gnosis/core";
 import type { Block } from "@gnosis/db";
 import type { ViewBlock } from "@gnosis/views";
@@ -40,6 +41,11 @@ export interface DesktopRuntime {
 	captureScheduled(
 		input: Omit<ScheduledCaptureInput, "todayDailyPath">,
 	): Promise<ScheduledCaptureResult>;
+	openDailyNote(now?: Date): Promise<{
+		filePath: string;
+		doc: string;
+		fileCreated: boolean;
+	}>;
 	loadViewBlocks(): Promise<ViewBlock[]>;
 	searchBlocks(query: string, limit?: number): Promise<FtsRow[]>;
 	listFiles(
@@ -96,6 +102,25 @@ export function createRuntime(vaultPath: string): DesktopRuntime {
 			});
 			await indexer.incremental(result.filePath);
 			return result;
+		},
+		async openDailyNote(now = new Date()) {
+			const filePath = dailyNotePath(now);
+			await vault.ensureDir("daily");
+			let doc: string;
+			let fileCreated = false;
+			try {
+				doc = await vault.read(filePath);
+			} catch (err) {
+				if (!(err instanceof VaultNotFoundError)) throw err;
+				const yyyy = now.getFullYear();
+				const mm = String(now.getMonth() + 1).padStart(2, "0");
+				const dd = String(now.getDate()).padStart(2, "0");
+				doc = `#+TITLE: ${yyyy}-${mm}-${dd}\n`;
+				await vault.write(filePath, doc);
+				await indexer.incremental(filePath);
+				fileCreated = true;
+			}
+			return { filePath, doc, fileCreated };
 		},
 		async loadViewBlocks() {
 			const rows = await store.getAllBlocks();

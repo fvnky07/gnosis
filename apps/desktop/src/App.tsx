@@ -185,6 +185,20 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 		setBlocks(next);
 	}, [runtime]);
 
+	const openDailyNote = useCallback(async () => {
+		try {
+			const { filePath, doc, fileCreated } = await runtime.openDailyNote();
+			setActiveBuffer({ id: filePath, filePath, doc });
+			if (fileCreated) await refresh();
+			await logInfo(
+				`daily note opened: ${filePath}${fileCreated ? " (created)" : ""}`,
+			);
+		} catch (err) {
+			const message = err instanceof Error ? err.message : String(err);
+			await logWarn(`Failed to open daily note: ${message}`);
+		}
+	}, [runtime, refresh]);
+
 	// ── vim store ─────────────────────────────────────────────────────────────
 	const setMode = useVimRuntime((s) => s.setMode);
 	const onVimModeChange = useCallback(
@@ -228,6 +242,9 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 		},
 		onOpenSchedule: () => {
 			setScheduleOpen(true);
+		},
+		onOpenDailyNote: () => {
+			void openDailyNote();
 		},
 	});
 
@@ -451,6 +468,23 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 			window.removeEventListener("keydown", onKeyDown);
 		};
 	}, []);
+
+	// Cmd+D opens (or creates + opens) today's daily note in the editor.
+	useEffect(() => {
+		function onKeyDown(event: KeyboardEvent) {
+			const isMac =
+				typeof navigator !== "undefined" && /Mac/i.test(navigator.platform);
+			const summon = isMac ? event.metaKey : event.ctrlKey;
+			if (summon && !event.shiftKey && event.key.toLowerCase() === "d") {
+				event.preventDefault();
+				void openDailyNote();
+			}
+		}
+		window.addEventListener("keydown", onKeyDown);
+		return () => {
+			window.removeEventListener("keydown", onKeyDown);
+		};
+	}, [openDailyNote]);
 
 	// ── block details popover ─────────────────────────────────────────────────
 	const [blockDetailsOpen, setBlockDetailsOpen] = useState(false);
