@@ -50,7 +50,7 @@ describe("settings-store", () => {
 		expect(state.layout.outerGapPx).toBe(DEFAULT_SETTINGS.layout.outerGapPx);
 		expect(state.editor.fontSize).toBe(DEFAULT_SETTINGS.editor.fontSize);
 		expect(state.vim.enabled).toBe(true);
-		expect(state.interface.statusBar.visible).toBe(true);
+		expect(state.interface.topBar.visible).toBe(true);
 	});
 
 	it("clamps appearance.uiFontScale into [0.85, 1.25]", async () => {

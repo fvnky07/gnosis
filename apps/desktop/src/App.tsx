@@ -15,8 +15,8 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BlockDetailsPopover } from "./components/BlockDetailsPopover";
 import { SettingsDialog } from "./components/SettingsDialog";
-import { StatusBar } from "./components/StatusBar";
 import { TabSwitcher } from "./components/TabSwitcher";
+import { TopBar } from "./components/TopBar";
 import { ViewCard, type ViewKind } from "./components/ViewCard";
 import { EditorPane } from "./EditorPane";
 import { openDb, readSchemaVersion } from "./lib/db";
@@ -473,7 +473,7 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 	useApplySettings();
 
 	const layoutSettings = useSettings((s) => s.layout);
-	const statusBarVisible = useSettings((s) => s.interface.statusBar.visible);
+	const topBarVisible = useSettings((s) => s.interface.topBar.visible);
 	const paletteAppearance = useSettings((s) => s.interface.palette);
 	const cardBorderVisible = useSettings((s) => s.appearance.cardBorderVisible);
 	const editorSettings = useSettings((s) => s.editor);
@@ -522,8 +522,22 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 	return (
 		<div
 			className="drag-region flex h-dvh w-dvw flex-col overflow-hidden bg-background text-foreground"
-			style={{ padding: "var(--outer-gap)" }}
+			style={{
+				paddingLeft: "var(--outer-gap)",
+				paddingRight: "var(--outer-gap)",
+				paddingBottom: "var(--outer-gap)",
+				paddingTop: 0,
+			}}
 		>
+			{topBarVisible ? (
+				<TopBar
+					vaultPath={vaultPath}
+					activeFilePath={activeBuffer.filePath}
+					selection={selection}
+					onOpenPalette={() => openPaletteWith()}
+					onOpenView={(id) => openView(id)}
+				/>
+			) : null}
 			<main
 				className="no-drag-region flex min-h-0 flex-1 items-stretch overflow-hidden rounded-xl bg-card text-card-foreground"
 				style={{
@@ -581,16 +595,6 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 					/>
 				) : null}
 			</main>
-
-			{statusBarVisible ? (
-				<footer className="no-drag-region flex shrink-0 justify-center px-3 py-1.5">
-					<StatusBar
-						vaultPath={vaultPath}
-						activeFilePath={activeBuffer.filePath}
-						selection={selection}
-					/>
-				</footer>
-			) : null}
 
 			<CommandPalette
 				registry={palette}

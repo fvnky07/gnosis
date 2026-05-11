@@ -27,16 +27,28 @@ const MODE_COLOR: Record<VimMode, string> = {
 	LEADER: "var(--mode-leader)",
 };
 
-export function ModePill({ className = "" }: { className?: string }) {
+export function ModePill({
+	className = "",
+	monochrome = false,
+}: {
+	className?: string;
+	monochrome?: boolean;
+}) {
 	const mode = useVimRuntime((s) => s.mode);
 	const leaderActive = useVimRuntime((s) => s.leaderActive);
 	const display: VimMode = leaderActive ? "LEADER" : mode;
 	const color = MODE_COLOR[display];
-	const style: CSSProperties = {
-		backgroundColor: `color-mix(in oklab, ${color} 18%, transparent)`,
-		color,
-		boxShadow: `inset 0 0 0 1px color-mix(in oklab, ${color} 28%, transparent)`,
-	};
+	const style: CSSProperties = monochrome
+		? {
+				backgroundColor: "color-mix(in oklab, var(--muted) 60%, transparent)",
+				color: "var(--muted-foreground)",
+				boxShadow: "inset 0 0 0 1px var(--border)",
+			}
+		: {
+				backgroundColor: `color-mix(in oklab, ${color} 18%, transparent)`,
+				color,
+				boxShadow: `inset 0 0 0 1px color-mix(in oklab, ${color} 28%, transparent)`,
+			};
 	return (
 		<span
 			style={style}

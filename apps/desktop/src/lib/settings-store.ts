@@ -51,7 +51,7 @@ export interface LayoutSettings {
 	viewSidebarPosition: ViewSidebarSide;
 }
 
-export interface StatusBarSettings {
+export interface TopBarSettings {
 	visible: boolean;
 	showMode: boolean;
 	showFilePath: boolean;
@@ -79,7 +79,7 @@ export interface PaletteSettings {
 }
 
 export interface InterfaceSettings {
-	statusBar: StatusBarSettings;
+	topBar: TopBarSettings;
 	tabs: TabsSettings;
 	palette: PaletteSettings;
 	breadcrumbsEnabled: boolean;
@@ -183,7 +183,7 @@ export const DEFAULT_SETTINGS: SettingsSnapshot = {
 		viewSidebarPosition: "right",
 	},
 	interface: {
-		statusBar: {
+		topBar: {
 			visible: true,
 			showMode: true,
 			showFilePath: true,
@@ -270,11 +270,11 @@ export const DEFAULT_SETTINGS: SettingsSnapshot = {
 interface SettingsActions {
 	updateAppearance(patch: Partial<AppearanceSettings>): void;
 	updateLayout(patch: Partial<LayoutSettings>): void;
-	updateStatusBar(patch: Partial<StatusBarSettings>): void;
+	updateTopBar(patch: Partial<TopBarSettings>): void;
 	updateTabs(patch: Partial<TabsSettings>): void;
 	updatePalette(patch: Partial<PaletteSettings>): void;
 	updateInterface(
-		patch: Partial<Omit<InterfaceSettings, "statusBar" | "tabs" | "palette">>,
+		patch: Partial<Omit<InterfaceSettings, "topBar" | "tabs" | "palette">>,
 	): void;
 	updateEditor(patch: Partial<EditorSettings>): void;
 	updateVim(patch: Partial<VimSettings>): void;
@@ -282,7 +282,7 @@ interface SettingsActions {
 	updateFiles(patch: Partial<FilesSettings>): void;
 	updateAdvanced(patch: Partial<AdvancedSettings>): void;
 	toggleVim(): void;
-	toggleStatusBar(): void;
+	toggleTopBar(): void;
 	toggleTheme(): void;
 	resetSection(section: SettingsSection): void;
 	resetAll(): void;
@@ -375,11 +375,11 @@ export const useSettings = create<SettingsState>()(
 				set((s) => ({
 					layout: shallowMerge(s.layout, clampPatch(patch, LAYOUT_CLAMPS)),
 				})),
-			updateStatusBar: (patch) =>
+			updateTopBar: (patch) =>
 				set((s) => ({
 					interface: {
 						...s.interface,
-						statusBar: shallowMerge(s.interface.statusBar, patch),
+						topBar: shallowMerge(s.interface.topBar, patch),
 					},
 				})),
 			updateTabs: (patch) =>
@@ -419,13 +419,13 @@ export const useSettings = create<SettingsState>()(
 
 			toggleVim: () =>
 				set((s) => ({ vim: { ...s.vim, enabled: !s.vim.enabled } })),
-			toggleStatusBar: () =>
+			toggleTopBar: () =>
 				set((s) => ({
 					interface: {
 						...s.interface,
-						statusBar: {
-							...s.interface.statusBar,
-							visible: !s.interface.statusBar.visible,
+						topBar: {
+							...s.interface.topBar,
+							visible: !s.interface.topBar.visible,
 						},
 					},
 				})),
@@ -473,6 +473,8 @@ export const useSettings = create<SettingsState>()(
 			version: 2,
 			migrate: (persistedState, fromVersion) => {
 				// v1 carried { noteWidthPct, statusBarVisible, vimEnabled } at the root.
+				// statusBarVisible maps to the new topBar.visible since the status row
+				// has been refactored into a top bar.
 				// Lift those into the v2 namespaces and seed everything else from defaults.
 				if (fromVersion < 2) {
 					const v1 = (persistedState ?? {}) as {
@@ -492,11 +494,11 @@ export const useSettings = create<SettingsState>()(
 						},
 						interface: {
 							...DEFAULT_SETTINGS.interface,
-							statusBar: {
-								...DEFAULT_SETTINGS.interface.statusBar,
+							topBar: {
+								...DEFAULT_SETTINGS.interface.topBar,
 								visible:
 									v1.statusBarVisible ??
-									DEFAULT_SETTINGS.interface.statusBar.visible,
+									DEFAULT_SETTINGS.interface.topBar.visible,
 							},
 						},
 						vim: {
@@ -546,9 +548,9 @@ function mergeSnapshot(
 		interface: {
 			...base.interface,
 			...(patch.interface ?? {}),
-			statusBar: {
-				...base.interface.statusBar,
-				...(patch.interface?.statusBar ?? {}),
+			topBar: {
+				...base.interface.topBar,
+				...(patch.interface?.topBar ?? {}),
 			},
 			tabs: { ...base.interface.tabs, ...(patch.interface?.tabs ?? {}) },
 			palette: {

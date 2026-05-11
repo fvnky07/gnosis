@@ -550,11 +550,11 @@ function LayoutPane(): ReactNode {
 // ── Interface ──────────────────────────────────────────────────────────────
 
 function InterfacePane(): ReactNode {
-	const sb = useSettings((s) => s.interface.statusBar);
+	const sb = useSettings((s) => s.interface.topBar);
 	const tabs = useSettings((s) => s.interface.tabs);
 	const palette = useSettings((s) => s.interface.palette);
 	const breadcrumbsEnabled = useSettings((s) => s.interface.breadcrumbsEnabled);
-	const updateStatusBar = useSettings((s) => s.updateStatusBar);
+	const updateTopBar = useSettings((s) => s.updateTopBar);
 	const updateTabs = useSettings((s) => s.updateTabs);
 	const updatePalette = useSettings((s) => s.updatePalette);
 	const updateInterface = useSettings((s) => s.updateInterface);
@@ -562,14 +562,14 @@ function InterfacePane(): ReactNode {
 		<>
 			<PaneHeading>Interface</PaneHeading>
 
-			<SubSection title="Status bar">
+			<SubSection title="Top bar">
 				<SettingRow
-					label="Show status bar"
-					description="Inline indicator row at the bottom of the window."
+					label="Show top bar"
+					description="Single horizontal chrome at the top of the window. Contains the search pill, mode pill, file path, line:col, and counts."
 					control={
 						<SwitchField
 							checked={sb.visible}
-							onCheckedChange={(visible) => updateStatusBar({ visible })}
+							onCheckedChange={(visible) => updateTopBar({ visible })}
 						/>
 					}
 				/>
@@ -579,7 +579,7 @@ function InterfacePane(): ReactNode {
 					control={
 						<SwitchField
 							checked={sb.showMode}
-							onCheckedChange={(showMode) => updateStatusBar({ showMode })}
+							onCheckedChange={(showMode) => updateTopBar({ showMode })}
 						/>
 					}
 				/>
@@ -588,9 +588,7 @@ function InterfacePane(): ReactNode {
 					control={
 						<SwitchField
 							checked={sb.showFilePath}
-							onCheckedChange={(showFilePath) =>
-								updateStatusBar({ showFilePath })
-							}
+							onCheckedChange={(showFilePath) => updateTopBar({ showFilePath })}
 						/>
 					}
 				/>
@@ -599,9 +597,7 @@ function InterfacePane(): ReactNode {
 					control={
 						<SwitchField
 							checked={sb.showLineCol}
-							onCheckedChange={(showLineCol) =>
-								updateStatusBar({ showLineCol })
-							}
+							onCheckedChange={(showLineCol) => updateTopBar({ showLineCol })}
 						/>
 					}
 				/>
@@ -611,7 +607,7 @@ function InterfacePane(): ReactNode {
 						<SwitchField
 							checked={sb.showWordCount}
 							onCheckedChange={(showWordCount) =>
-								updateStatusBar({ showWordCount })
+								updateTopBar({ showWordCount })
 							}
 						/>
 					}
@@ -622,7 +618,7 @@ function InterfacePane(): ReactNode {
 						<SwitchField
 							checked={sb.showCharCount}
 							onCheckedChange={(showCharCount) =>
-								updateStatusBar({ showCharCount })
+								updateTopBar({ showCharCount })
 							}
 						/>
 					}
@@ -634,7 +630,7 @@ function InterfacePane(): ReactNode {
 						<SwitchField
 							checked={sb.showReadingTime}
 							onCheckedChange={(showReadingTime) =>
-								updateStatusBar({ showReadingTime })
+								updateTopBar({ showReadingTime })
 							}
 						/>
 					}
@@ -646,7 +642,7 @@ function InterfacePane(): ReactNode {
 						<SwitchField
 							checked={sb.showVimRegister}
 							onCheckedChange={(showVimRegister) =>
-								updateStatusBar({ showVimRegister })
+								updateTopBar({ showVimRegister })
 							}
 						/>
 					}
@@ -656,7 +652,7 @@ function InterfacePane(): ReactNode {
 					control={
 						<SwitchField
 							checked={sb.showClock}
-							onCheckedChange={(showClock) => updateStatusBar({ showClock })}
+							onCheckedChange={(showClock) => updateTopBar({ showClock })}
 						/>
 					}
 				/>
