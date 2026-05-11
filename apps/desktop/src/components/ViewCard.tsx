@@ -19,6 +19,7 @@ interface ViewCardProps {
 	view: ViewKind;
 	onClose(): void;
 	className?: string;
+	style?: import("react").CSSProperties;
 }
 
 const VIEW_META: Record<ViewKind, { label: string; icon: LucideIcon }> = {
@@ -32,12 +33,19 @@ const VIEW_META: Record<ViewKind, { label: string; icon: LucideIcon }> = {
  * swaps `view` when the user opens a different one (no tab strip lives
  * inside the card). Header only carries the view label and close button.
  */
-export function ViewCard({ blocks, view, onClose, className }: ViewCardProps) {
+export function ViewCard({
+	blocks,
+	view,
+	onClose,
+	className,
+	style,
+}: ViewCardProps) {
 	const meta = VIEW_META[view];
 	const Icon = meta.icon;
 	return (
 		<aside
 			className={`flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-sm ${className ?? ""}`}
+			style={style}
 		>
 			<header className="flex h-8 shrink-0 items-center gap-2 border-border/60 border-b px-3">
 				<Icon className="size-3.5 text-muted-foreground" />

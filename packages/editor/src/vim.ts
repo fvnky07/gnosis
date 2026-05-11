@@ -29,18 +29,88 @@ export interface VimHostBindings {
 	openCommandLine?: (trigger: string) => void;
 }
 
-let registered = false;
+/**
+ * User-tunable vim behaviors surfaced via settings. The editor package
+ * stays decoupled from the persisted store — callers pass a snapshot when
+ * they build the extension stack and the relevant cm-vim options + key
+ * mappings are applied to the global cm-vim runtime.
+ */
+export interface VimOptions {
+	jkEscape: boolean;
+	jkTimeoutMs: number;
+	relativeNumbers: boolean;
+	smartCase: boolean;
+	systemClipboard: boolean;
+	startInNormal: boolean;
+}
 
-export function buildVimExtensions(host?: VimHostBindings): Extension[] {
+export const DEFAULT_VIM_OPTIONS: VimOptions = {
+	jkEscape: true,
+	jkTimeoutMs: 200,
+	relativeNumbers: true,
+	smartCase: true,
+	systemClipboard: true,
+	startInNormal: true,
+};
+
+let registered = false;
+let appliedOptionsKey: string | null = null;
+
+export function buildVimExtensions(
+	host?: VimHostBindings,
+	options: VimOptions = DEFAULT_VIM_OPTIONS,
+): Extension[] {
 	if (host && !registered) {
 		registerExCommands(host);
 		registered = true;
 	}
+	applyVimOptions(options);
 	const extensions: Extension[] = [vim()];
 	if (host?.openCommandLine) {
 		extensions.push(buildCommandLineBridge(host.openCommandLine));
 	}
 	return extensions;
+}
+
+/**
+ * Apply cm-vim runtime options derived from the user's settings. cm-vim
+ * stores these globally on `Vim.options`, so we only re-apply when the
+ * relevant subset changes (cheap stringified key).
+ */
+function applyVimOptions(options: VimOptions): void {
+	const key = JSON.stringify(options);
+	if (key === appliedOptionsKey) return;
+	appliedOptionsKey = key;
+
+	const setOption = (
+		Vim as unknown as {
+			setOption?: (name: string, value: unknown) => void;
+		}
+	).setOption;
+	const unmap = (
+		Vim as unknown as {
+			unmap?: (lhs: string, mode?: string) => void;
+		}
+	).unmap;
+
+	try {
+		setOption?.("relativenumber", options.relativeNumbers);
+		setOption?.("smartcase", options.smartCase);
+		setOption?.("ignorecase", options.smartCase);
+		setOption?.("clipboard", options.systemClipboard ? "unnamed" : "");
+		setOption?.("timeoutlen", options.jkTimeoutMs);
+	} catch {
+		// cm-vim throws if an option name is unknown across versions; ignore.
+	}
+
+	try {
+		unmap?.("jk", "insert");
+	} catch {
+		// swallow — `unmap` is best-effort
+	}
+	if (options.jkEscape) {
+		Vim.map("jk", "<Esc>", "insert");
+	}
 }
 
 /**

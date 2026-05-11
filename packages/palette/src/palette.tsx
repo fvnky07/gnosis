@@ -34,6 +34,7 @@ import {
 	useEffect,
 	useMemo,
 	useReducer,
+	useRef,
 	useState,
 } from "react";
 import type { CommandRegistry } from "./commands";
@@ -41,6 +42,23 @@ import { bumpFrecency, type FrecencyMap } from "./frecency";
 import { type PaletteRegistry, queryProviders } from "./registry";
 import { INITIAL_STATE, type PaletteState, paletteReducer } from "./state";
 import type { PaletteCtx, PaletteItem } from "./types";
+
+export type PalettePosition = "top" | "center";
+export type PaletteBackdrop = "none" | "dim" | "blur";
+
+export interface PaletteAppearance {
+	position?: PalettePosition;
+	/** vh from the top of the viewport. Only honored when position === "top". */
+	topOffsetVh?: number;
+	/** Width in px (overrides the default `max-w-xl`). */
+	widthPx?: number;
+	backdrop?: PaletteBackdrop;
+	/** Maximum entries the rendered command list keeps. Anything beyond this
+	 *  is truncated so a 1000-item provider can't tank the dialog. */
+	resultLimit?: number;
+	/** When true, the palette retains the last-typed query across opens. */
+	preserveQueryOnReopen?: boolean;
+}
 
 interface CommandPaletteProps {
 	registry: PaletteRegistry;
@@ -55,6 +73,9 @@ interface CommandPaletteProps {
 	frecency?: FrecencyMap;
 	onFrecencyChange?(next: FrecencyMap): void;
 	className?: string;
+	/** Persisted UI knobs from the desktop settings store. Unset values
+	 *  fall back to the previous hard-coded defaults. */
+	appearance?: PaletteAppearance;
 }
 
 interface ProviderResult {
@@ -113,17 +134,33 @@ export function CommandPalette({
 	frecency = {},
 	onFrecencyChange,
 	className,
+	appearance,
 }: CommandPaletteProps): ReactNode {
+	const position: PalettePosition = appearance?.position ?? "top";
+	const topOffsetVh = appearance?.topOffsetVh ?? 14;
+	const widthPx = appearance?.widthPx ?? 576; // matches former max-w-xl
+	const backdrop: PaletteBackdrop = appearance?.backdrop ?? "blur";
+	const resultLimit = Math.max(1, appearance?.resultLimit ?? 50);
 	const [state, dispatch] = useReducer(paletteReducer, INITIAL_STATE);
 	const [results, setResults] = useState<ProviderResult[]>([]);
+	const lastQueryRef = useRef("");
 
 	useEffect(() => {
 		if (open && !state.open) {
 			dispatch({ type: "open" });
-			if (seed) dispatch({ type: "set-query", query: seed });
+			if (seed) {
+				dispatch({ type: "set-query", query: seed });
+			} else if (appearance?.preserveQueryOnReopen && lastQueryRef.current) {
+				dispatch({ type: "set-query", query: lastQueryRef.current });
+			}
 		}
-		if (!open && state.open) dispatch({ type: "close" });
-	}, [open, state.open, seed]);
+		if (!open && state.open) {
+			if (appearance?.preserveQueryOnReopen) {
+				lastQueryRef.current = state.query;
+			}
+			dispatch({ type: "close" });
+		}
+	}, [open, state.open, state.query, seed, appearance?.preserveQueryOnReopen]);
 
 	useEffect(() => {
 		if (!state.open) return;
@@ -195,8 +232,28 @@ export function CommandPalette({
 						dispatch({ type: "escape", total: flatItems.length });
 					}
 				}}
+				style={
+					position === "center"
+						? {
+								top: "50%",
+								transform: "translate(-50%, -50%)",
+								width: `${widthPx}px`,
+								maxWidth: `${widthPx}px`,
+							}
+						: {
+								top: `${topOffsetVh}vh`,
+								transform: "translate(-50%, 0)",
+								width: `${widthPx}px`,
+								maxWidth: `${widthPx}px`,
+							}
+				}
 				className={cn(
-					"data-[state=open]:slide-in-from-top-4 top-[14vh] left-1/2 max-w-xl translate-x-[-50%] translate-y-0 gap-0 overflow-hidden rounded-xl border border-border/70 bg-popover/95 p-0 text-popover-foreground shadow-2xl ring-1 ring-black/5 backdrop-blur-xl",
+					"data-[state=open]:slide-in-from-top-4 left-1/2 gap-0 overflow-hidden rounded-xl border border-border/70 p-0 text-popover-foreground shadow-2xl ring-1 ring-black/5",
+					backdrop === "blur"
+						? "bg-popover/95 backdrop-blur-xl"
+						: backdrop === "dim"
+							? "bg-popover"
+							: "bg-popover",
 					className,
 				)}
 			>
@@ -220,7 +277,7 @@ export function CommandPalette({
 						{flatItems.length === 0 ? (
 							<CommandEmpty>{renderEmpty(state)}</CommandEmpty>
 						) : null}
-						{groupBySection(results).map((group) => (
+						{groupBySection(results, resultLimit).map((group) => (
 							<CommandGroup key={group.key} heading={group.heading}>
 								{group.entries.map((entry) => (
 									<PaletteRow
@@ -314,9 +371,13 @@ interface SectionGroup {
  * preserved from the input so provider rank still controls the visual
  * order.
  */
-function groupBySection(results: ProviderResult[]): SectionGroup[] {
+function groupBySection(
+	results: ProviderResult[],
+	limit = Number.POSITIVE_INFINITY,
+): SectionGroup[] {
 	const groups = new Map<string, SectionGroup>();
-	for (const bucket of results) {
+	let total = 0;
+	outer: for (const bucket of results) {
 		for (const item of bucket.items) {
 			const heading =
 				item.section ?? PROVIDER_LABELS[bucket.providerId] ?? bucket.providerId;
@@ -327,6 +388,8 @@ function groupBySection(results: ProviderResult[]): SectionGroup[] {
 				groups.set(key, group);
 			}
 			group.entries.push({ item, providerId: bucket.providerId });
+			total += 1;
+			if (total >= limit) break outer;
 		}
 	}
 	return Array.from(groups.values());

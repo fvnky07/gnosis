@@ -13,12 +13,19 @@ import {
 	viewProvider,
 } from "@gnosis/palette";
 import { useEffect, useMemo, useState } from "react";
+import { useSettings } from "./lib/settings-store";
 
 interface PaletteEngineOptions {
 	/** Called when the user runs `vault.refresh` from the command palette. */
 	onRefreshIndex: () => Promise<void>;
 	/** Called when the user runs `vim.toggle`. */
 	onToggleVim: () => void;
+	/** Called when the user runs `appearance.toggleTheme`. */
+	onToggleTheme: () => void;
+	/** Called when the user runs `editor.toggleLineNumbers`. */
+	onToggleLineNumbers: () => void;
+	/** Called when the user runs `editor.toggleWrap`. */
+	onToggleWordWrap: () => void;
 	/** Called when the user runs `settings.open`. */
 	onOpenSettings: () => void;
 }
@@ -34,6 +41,9 @@ interface PaletteEngineOptions {
 export function usePaletteEngine({
 	onRefreshIndex,
 	onToggleVim,
+	onToggleTheme,
+	onToggleLineNumbers,
+	onToggleWordWrap,
 	onOpenSettings,
 }: PaletteEngineOptions) {
 	// biome-ignore lint/correctness/useExhaustiveDependencies: registries created once; option callbacks captured in command closures
@@ -64,8 +74,22 @@ export function usePaletteEngine({
 			id: "settings.open",
 			label: "Open Settings",
 			aliases: ["preferences", "config"],
+			shortcut: "⌘,",
 			run: async () => {
 				onOpenSettings();
+			},
+		});
+		commands.register({
+			id: "settings.reset",
+			label: "Reset settings to defaults",
+			aliases: ["reset", "factory"],
+			run: async () => {
+				if (
+					typeof window === "undefined" ||
+					window.confirm("Reset every gnosis setting to its default?")
+				) {
+					useSettings.getState().resetAll();
+				}
 			},
 		});
 		commands.register({
@@ -74,6 +98,30 @@ export function usePaletteEngine({
 			aliases: ["modal"],
 			run: async () => {
 				onToggleVim();
+			},
+		});
+		commands.register({
+			id: "appearance.toggleTheme",
+			label: "Toggle theme",
+			aliases: ["dark mode", "light mode"],
+			run: async () => {
+				onToggleTheme();
+			},
+		});
+		commands.register({
+			id: "editor.toggleLineNumbers",
+			label: "Toggle line numbers",
+			aliases: ["gutter"],
+			run: async () => {
+				onToggleLineNumbers();
+			},
+		});
+		commands.register({
+			id: "editor.toggleWrap",
+			label: "Toggle word wrap",
+			aliases: ["wrap"],
+			run: async () => {
+				onToggleWordWrap();
 			},
 		});
 		return { palette, commands };

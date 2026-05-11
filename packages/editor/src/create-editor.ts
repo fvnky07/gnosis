@@ -4,8 +4,8 @@ import { buildBaseExtensions } from "./extensions";
 import { vimModeWatcher } from "./mode-observer";
 import { buildOrgMotions } from "./motions";
 import { selectionWatcher } from "./selection-observer";
-import type { BufferProps } from "./types";
-import { buildVimExtensions } from "./vim";
+import { type BufferProps, DEFAULT_EDITOR_OPTIONS } from "./types";
+import { buildVimExtensions, DEFAULT_VIM_OPTIONS } from "./vim";
 
 const WRITE_DEBOUNCE_MS = 250;
 const SCROLL_DEBOUNCE_MS = 1000;
@@ -31,6 +31,8 @@ export function createEditor(
 	const {
 		initialDoc,
 		vimEnabled = true,
+		editorOpts = DEFAULT_EDITOR_OPTIONS,
+		vimOpts = DEFAULT_VIM_OPTIONS,
 		onChange,
 		onScroll,
 		vimHostBindings,
@@ -63,11 +65,11 @@ export function createEditor(
 	// vim() must precede the keymap of the base extensions so cm-vim's keys win
 	// over default editor bindings — cm-vim's docs require this ordering.
 	const extensions = [
-		...(vimEnabled ? buildVimExtensions(vimHostBindings) : []),
+		...(vimEnabled ? buildVimExtensions(vimHostBindings, vimOpts) : []),
 		...(vimEnabled ? buildOrgMotions() : []),
 		...(vimEnabled && onVimModeChange ? [vimModeWatcher(onVimModeChange)] : []),
 		...(onSelectionChange ? [selectionWatcher(onSelectionChange)] : []),
-		...buildBaseExtensions(),
+		...buildBaseExtensions(editorOpts),
 		docChangeListener,
 	];
 

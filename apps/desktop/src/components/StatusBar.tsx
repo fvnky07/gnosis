@@ -1,5 +1,7 @@
 import type { SelectionInfo } from "@gnosis/editor";
 import { ModePill } from "@gnosis/vim-runtime";
+import { useEffect, useState } from "react";
+import { useSettings } from "../lib/settings-store";
 
 interface StatusBarProps {
 	/** Vault root absolute path; used to compute the relative file label. */
@@ -14,6 +16,8 @@ interface StatusBarProps {
 	className?: string;
 }
 
+const READING_WPM = 250;
+
 /**
  * Inline status row at the bottom of the shell. Sits on the canvas
  * background (no card surface, no border, no dot separators) so it
@@ -21,7 +25,12 @@ interface StatusBarProps {
  * whitespace-separated and the row scrolls horizontally if it overflows
  * the available width.
  *
- * Order: mode pill · folder/title.ext · L:C · words · chars
+ * Each slot is gated by `settings.interface.statusBar.show*` — users can
+ * pick which indicators show up. A parallel PR refactors this row into a
+ * top bar, so the position is intentionally fixed-bottom for now.
+ *
+ * Order (when enabled): mode pill · register · folder/title.ext · L:C ·
+ * words · chars · reading-time · clock.
  */
 export function StatusBar({
 	vaultPath,
@@ -29,21 +38,52 @@ export function StatusBar({
 	selection,
 	className,
 }: StatusBarProps) {
+	const sb = useSettings((s) => s.interface.statusBar);
 	const fileLabel = formatFileLabel(vaultPath, activeFilePath);
+	const clock = useClock(sb.showClock);
 	return (
 		<nav
 			aria-label="Status"
 			className={`no-drag-region scrollbar-none inline-flex max-w-full items-center gap-4 overflow-x-auto whitespace-nowrap font-mono text-[11px] text-muted-foreground ${className ?? ""}`}
 		>
-			<ModePill />
-			<span className="text-foreground" title={activeFilePath}>
-				{fileLabel}
-			</span>
-			<span>{formatLocation(selection)}</span>
-			<span>{formatWords(selection)}</span>
-			<span>{formatChars(selection)}</span>
+			{sb.showMode ? <ModePill /> : null}
+			{sb.showVimRegister ? <span>"{readRegister() || "_"}</span> : null}
+			{sb.showFilePath ? (
+				<span className="text-foreground" title={activeFilePath}>
+					{fileLabel}
+				</span>
+			) : null}
+			{sb.showLineCol ? <span>{formatLocation(selection)}</span> : null}
+			{sb.showWordCount ? <span>{formatWords(selection)}</span> : null}
+			{sb.showCharCount ? <span>{formatChars(selection)}</span> : null}
+			{sb.showReadingTime ? <span>{formatReadingTime(selection)}</span> : null}
+			{sb.showClock ? <span>{clock}</span> : null}
 		</nav>
 	);
+}
+
+function readRegister(): string {
+	// The vim register slot is a placeholder for the rebind/clipboard PR.
+	// Until cm-vim exposes the active register, display `"` to mark the slot.
+	return "";
+}
+
+function useClock(enabled: boolean): string {
+	const [time, setTime] = useState(() => formatClock(new Date()));
+	useEffect(() => {
+		if (!enabled) return;
+		const tick = () => setTime(formatClock(new Date()));
+		tick();
+		const id = window.setInterval(tick, 30 * 1000);
+		return () => window.clearInterval(id);
+	}, [enabled]);
+	return time;
+}
+
+function formatClock(d: Date): string {
+	const hh = d.getHours().toString().padStart(2, "0");
+	const mm = d.getMinutes().toString().padStart(2, "0");
+	return `${hh}:${mm}`;
 }
 
 function formatFileLabel(vaultPath: string, filePath: string): string {
@@ -91,4 +131,11 @@ function formatChars(selection: SelectionInfo | null): string {
 		return `${sel}/${total} chars`;
 	}
 	return `${total} chars`;
+}
+
+function formatReadingTime(selection: SelectionInfo | null): string {
+	const words = selection?.totalWords ?? 0;
+	if (words === 0) return "0 min";
+	const minutes = Math.max(1, Math.round(words / READING_WPM));
+	return `${minutes} min read`;
 }

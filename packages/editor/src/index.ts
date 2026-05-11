@@ -8,6 +8,15 @@ export type { VimMode } from "./mode-observer";
 export { buildOrgMotions } from "./motions";
 export type { SelectionInfo } from "./selection-observer";
 export { selectionWatcher } from "./selection-observer";
-export type { BufferProps, OrgToken, OrgTokenKind } from "./types";
-export type { VimHostBindings } from "./vim";
-export { buildVimExtensions } from "./vim";
+export type {
+	BufferProps,
+	CursorStyleOption,
+	EditorOptions,
+	LineNumbersMode,
+	OrgToken,
+	OrgTokenKind,
+	WhitespaceRenderMode,
+} from "./types";
+export { DEFAULT_EDITOR_OPTIONS } from "./types";
+export type { VimHostBindings, VimOptions } from "./vim";
+export { buildVimExtensions, DEFAULT_VIM_OPTIONS } from "./vim";

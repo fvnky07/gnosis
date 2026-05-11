@@ -4,6 +4,40 @@
  * are intentionally not exported.
  */
 
+export type LineNumbersMode = "off" | "absolute" | "relative";
+export type WhitespaceRenderMode = "none" | "boundary" | "selection" | "all";
+export type CursorStyleOption = "block" | "line" | "underline";
+
+/**
+ * Subset of persisted settings consumed by `createEditor` to drive
+ * CodeMirror extensions. The desktop shell maps `useSettings().editor` into
+ * this shape; the editor package itself does not depend on the store so it
+ * can be reused outside the Tauri app.
+ */
+export interface EditorOptions {
+	fontFamily: string;
+	fontSize: number;
+	lineHeight: number;
+	letterSpacingPx: number;
+	fontLigatures: boolean;
+	lineNumbers: LineNumbersMode;
+	foldGutter: boolean;
+	wordWrap: boolean;
+	tabSize: number;
+	insertSpaces: boolean;
+	highlightActiveLine: boolean;
+	matchBrackets: boolean;
+	closeBrackets: boolean;
+	indentGuides: boolean;
+	cursorStyle: CursorStyleOption;
+	cursorBlink: boolean;
+	cursorWidthPx: number;
+	autocomplete: boolean;
+	/** Comma-separated rulers (`"80,100"`). Empty disables. */
+	rulers: string;
+	renderWhitespace: WhitespaceRenderMode;
+}
+
 export interface BufferProps {
 	bufferId: string;
 	/** Full file contents on mount. CodeMirror's EditorState owns the source of truth while mounted. */
@@ -11,6 +45,10 @@ export interface BufferProps {
 	filePath: string;
 	/** Default true — vim is core, not a setting. */
 	vimEnabled?: boolean;
+	/** Optional editor options. When omitted, `DEFAULT_EDITOR_OPTIONS` apply. */
+	editorOpts?: EditorOptions;
+	/** Optional vim runtime options. When omitted, `DEFAULT_VIM_OPTIONS` apply. */
+	vimOpts?: import("./vim").VimOptions;
 	/** Fired after a 250 ms idle window of inactivity. Receives the full buffer text. */
 	onChange: (text: string) => void;
 	/** Fired after a 1 s idle window. Receives the top-line scroll offset. */
@@ -27,6 +65,29 @@ export interface BufferProps {
 		info: import("./selection-observer").SelectionInfo,
 	) => void;
 }
+
+export const DEFAULT_EDITOR_OPTIONS: EditorOptions = {
+	fontFamily: "Commit Mono",
+	fontSize: 14,
+	lineHeight: 1.55,
+	letterSpacingPx: 0,
+	fontLigatures: true,
+	lineNumbers: "off",
+	foldGutter: true,
+	wordWrap: true,
+	tabSize: 2,
+	insertSpaces: true,
+	highlightActiveLine: true,
+	matchBrackets: true,
+	closeBrackets: true,
+	indentGuides: true,
+	cursorStyle: "line",
+	cursorBlink: true,
+	cursorWidthPx: 2,
+	autocomplete: true,
+	rulers: "",
+	renderWhitespace: "selection",
+};
 
 /** Kind of org-flavored token recognized by {@link findOrgTokens}. */
 export type OrgTokenKind =
