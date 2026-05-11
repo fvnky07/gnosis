@@ -15,7 +15,8 @@
 	"dependencies": {
 		"@gnosis/core": "workspace:*",
 		"@gnosis/ui": "workspace:*",
-		"cmdk": "^1.1"
+		"cmdk": "^1.1",
+		"lucide-react": "catalog:"
 	},
 	"peerDependencies": {
 		"react": ">=19"

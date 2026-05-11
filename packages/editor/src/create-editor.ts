@@ -3,6 +3,7 @@ import { EditorView } from "@codemirror/view";
 import { buildBaseExtensions } from "./extensions";
 import { vimModeWatcher } from "./mode-observer";
 import { buildOrgMotions } from "./motions";
+import { selectionWatcher } from "./selection-observer";
 import type { BufferProps } from "./types";
 import { buildVimExtensions } from "./vim";
 
@@ -34,6 +35,7 @@ export function createEditor(
 		onScroll,
 		vimHostBindings,
 		onVimModeChange,
+		onSelectionChange,
 	} = props;
 
 	let writeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -64,6 +66,7 @@ export function createEditor(
 		...(vimEnabled ? buildVimExtensions(vimHostBindings) : []),
 		...(vimEnabled ? buildOrgMotions() : []),
 		...(vimEnabled && onVimModeChange ? [vimModeWatcher(onVimModeChange)] : []),
+		...(onSelectionChange ? [selectionWatcher(onSelectionChange)] : []),
 		...buildBaseExtensions(),
 		docChangeListener,
 	];
