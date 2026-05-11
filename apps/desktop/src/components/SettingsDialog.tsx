@@ -677,6 +677,16 @@ function InterfacePane(): ReactNode {
 						/>
 					}
 				/>
+				<SettingRow
+					label="Tab count"
+					description="Number of open buffers, shown at the far right of the status."
+					control={
+						<SwitchField
+							checked={sb.showTabCount}
+							onCheckedChange={(showTabCount) => updateTopBar({ showTabCount })}
+						/>
+					}
+				/>
 			</SubSection>
 
 			<SubSection title="Command palette">
