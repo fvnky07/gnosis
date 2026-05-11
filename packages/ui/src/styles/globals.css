@@ -154,6 +154,31 @@
 	--yank-flash: oklch(0.95 0.13 95);
 	--block-jump-highlight: oklch(0.85 0.08 250);
 	--buffer-dirty-dot: oklch(0.7 0.18 50);
+
+	/* Layout + appearance tokens. `useApplySettings` overwrites these from
+	 * the persisted store on mount; the defaults below keep early-render
+	 * pixels sensible before that hook runs. Refer to
+	 * `apps/desktop/src/lib/settings-apply.ts` for the writers. */
+	--outer-gap: 8px;
+	--inner-gap: 8px;
+	--page-max-width: 1100px;
+	--note-width-pct: 60%;
+	--editor-padding-x: 24px;
+	--editor-padding-y: 24px;
+	--view-sidebar-width: 400px;
+	--ui-font-scale: 1;
+	--accent-color: oklch(0.62 0.18 250);
+	--card-border-width: 1px;
+	--window-opacity: 1;
+	--density-row-padding: 0.5rem;
+	--palette-top-offset: 14vh;
+	--palette-width: 640px;
+	--editor-font-family: "Commit Mono", ui-monospace, monospace;
+	--editor-font-size: 14px;
+	--editor-line-height: 1.55;
+	--editor-letter-spacing: 0;
+	--editor-font-feature: normal;
+	--editor-cursor-width: 2px;
 }
 
 .dark,

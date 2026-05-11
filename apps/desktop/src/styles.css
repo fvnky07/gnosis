@@ -54,17 +54,41 @@
 	display: none;
 }
 
-/* CodeMirror sizing: fill the parent container provided by EditorPane. */
+/* CodeMirror sizing: fill the parent container provided by EditorPane.
+ * Font family and size are driven by `settings.editor` via the
+ * `--editor-font-*` custom properties written from `useApplySettings`. The
+ * fallbacks below match the pre-settings defaults so an un-applied root
+ * (e.g. the Vitest jsdom env) still renders something sensible. */
 .cm-editor {
 	height: 100%;
-	font-family: var(--font-mono);
-	font-size: 14px;
+	font-family: var(--editor-font-family, var(--font-mono));
+	font-size: var(--editor-font-size, 14px);
+	letter-spacing: var(--editor-letter-spacing, 0);
+	font-feature-settings: var(--editor-font-feature, normal);
 }
 .cm-editor.cm-focused {
 	outline: none;
 }
 .cm-scroller {
 	font-family: inherit;
+	line-height: var(--editor-line-height, 1.55);
+}
+
+/* Cursor blink keyframes used by the editor theme. */
+@keyframes cm-blink {
+	50% {
+		opacity: 0;
+	}
+}
+
+/* Motion gate. When `data-motion="off"` is set on <html> (driven by
+ * `appearance.motionEnabled` or the OS reduced-motion preference), kill
+ * every transition + animation site-wide. */
+html[data-motion="off"] *,
+html[data-motion="off"] *::before,
+html[data-motion="off"] *::after {
+	transition: none !important;
+	animation: none !important;
 }
 
 /* Org-flavored token colors used by both the editor decoration plugin and

@@ -1,4 +1,10 @@
-import type { SelectionInfo, VimHostBindings, VimMode } from "@gnosis/editor";
+import type {
+	EditorOptions,
+	SelectionInfo,
+	VimHostBindings,
+	VimMode,
+	VimOptions,
+} from "@gnosis/editor";
 import { CommandPalette, type PaletteCtx } from "@gnosis/palette";
 import type { ViewBlock } from "@gnosis/views";
 import {
@@ -16,6 +22,7 @@ import { EditorPane } from "./EditorPane";
 import { openDb, readSchemaVersion } from "./lib/db";
 import { error as logError, info as logInfo, warn as logWarn } from "./lib/log";
 import { createRuntime, type DesktopRuntime } from "./lib/runtime";
+import { useApplySettings } from "./lib/settings-apply";
 import { useSettings } from "./lib/settings-store";
 import { ensureVaultPath } from "./lib/vault";
 import { usePaletteEngine } from "./use-palette";
@@ -159,13 +166,27 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 	const [settingsOpen, setSettingsOpen] = useState(false);
 
 	// ── palette engine ────────────────────────────────────────────────────────
+	const toggleVim = useSettings((s) => s.toggleVim);
+	const toggleTheme = useSettings((s) => s.toggleTheme);
+	const updateEditor = useSettings((s) => s.updateEditor);
 	const { palette, commands, open, setOpen } = usePaletteEngine({
 		onRefreshIndex: async () => {
 			await runtime.coldIndex();
 			await refresh();
 		},
 		onToggleVim: () => {
-			// TODO: persist vim-mode preference to settings
+			toggleVim();
+		},
+		onToggleTheme: () => {
+			toggleTheme();
+		},
+		onToggleLineNumbers: () => {
+			const current = useSettings.getState().editor.lineNumbers;
+			updateEditor({ lineNumbers: current === "off" ? "absolute" : "off" });
+		},
+		onToggleWordWrap: () => {
+			const current = useSettings.getState().editor.wordWrap;
+			updateEditor({ wordWrap: !current });
 		},
 		onOpenSettings: () => {
 			setSettingsOpen(true);
@@ -449,45 +470,128 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 	void schemaVersion;
 	void indexNote;
 
-	const noteWidthPct = useSettings((s) => s.noteWidthPct);
-	const vimEnabled = useSettings((s) => s.vimEnabled);
+	useApplySettings();
+
+	const layoutSettings = useSettings((s) => s.layout);
+	const topBarVisible = useSettings((s) => s.interface.topBar.visible);
+	const paletteAppearance = useSettings((s) => s.interface.palette);
+	const cardBorderVisible = useSettings((s) => s.appearance.cardBorderVisible);
+	const editorSettings = useSettings((s) => s.editor);
+	const vimSettings = useSettings((s) => s.vim);
+
+	const editorOpts = useMemo<EditorOptions>(
+		() => ({
+			fontFamily: editorSettings.fontFamily,
+			fontSize: editorSettings.fontSize,
+			lineHeight: editorSettings.lineHeight,
+			letterSpacingPx: editorSettings.letterSpacingPx,
+			fontLigatures: editorSettings.fontLigatures,
+			lineNumbers: editorSettings.lineNumbers,
+			foldGutter: editorSettings.foldGutter,
+			wordWrap: editorSettings.wordWrap,
+			tabSize: editorSettings.tabSize,
+			insertSpaces: editorSettings.insertSpaces,
+			highlightActiveLine: editorSettings.highlightActiveLine,
+			matchBrackets: editorSettings.matchBrackets,
+			closeBrackets: editorSettings.closeBrackets,
+			indentGuides: editorSettings.indentGuides,
+			cursorStyle: editorSettings.cursorStyle,
+			cursorBlink: editorSettings.cursorBlink,
+			cursorWidthPx: editorSettings.cursorWidthPx,
+			autocomplete: editorSettings.autocomplete,
+			rulers: editorSettings.rulers,
+			renderWhitespace: editorSettings.renderWhitespace,
+		}),
+		[editorSettings],
+	);
+
+	const vimOpts = useMemo<VimOptions>(
+		() => ({
+			jkEscape: vimSettings.jkEscape,
+			jkTimeoutMs: vimSettings.jkTimeoutMs,
+			relativeNumbers: vimSettings.relativeNumbers,
+			smartCase: vimSettings.smartCase,
+			systemClipboard: vimSettings.systemClipboard,
+			startInNormal: vimSettings.startInNormal,
+		}),
+		[vimSettings],
+	);
+
+	const viewSidebarOnLeft = layoutSettings.viewSidebarPosition === "left";
 
 	return (
-		<div className="drag-region flex h-dvh w-dvw flex-col overflow-hidden bg-background px-2.5 pt-0 pb-2.5 text-foreground">
-			<TopBar
-				vaultPath={vaultPath}
-				activeFilePath={activeBuffer.filePath}
-				selection={selection}
-				onOpenPalette={() => openPaletteWith()}
-				onOpenView={(id) => openView(id)}
-			/>
-			<main className="no-drag-region flex min-h-0 flex-1 items-stretch gap-2 overflow-hidden rounded-xl border border-border bg-card text-card-foreground">
-				<div className="flex min-w-0 flex-1 justify-center overflow-hidden">
+		<div
+			className="drag-region flex h-dvh w-dvw flex-col overflow-hidden bg-background text-foreground"
+			style={{
+				paddingLeft: "var(--outer-gap)",
+				paddingRight: "var(--outer-gap)",
+				paddingBottom: "var(--outer-gap)",
+				paddingTop: 0,
+			}}
+		>
+			{topBarVisible ? (
+				<TopBar
+					vaultPath={vaultPath}
+					activeFilePath={activeBuffer.filePath}
+					selection={selection}
+					onOpenPalette={() => openPaletteWith()}
+					onOpenView={(id) => openView(id)}
+				/>
+			) : null}
+			<main
+				className="no-drag-region flex min-h-0 flex-1 items-stretch overflow-hidden rounded-xl bg-card text-card-foreground"
+				style={{
+					gap: "var(--inner-gap)",
+					borderWidth: cardBorderVisible ? "1px" : "0px",
+					borderStyle: "solid",
+					borderColor: "var(--border)",
+				}}
+			>
+				{viewOpen && viewSidebarOnLeft ? (
+					<ViewCard
+						blocks={blocks}
+						view={viewOpen}
+						onClose={() => setViewOpen(null)}
+						className="shrink-0 border-border border-r"
+						style={{ width: "var(--view-sidebar-width)" }}
+					/>
+				) : null}
+				<div
+					className={`flex min-w-0 flex-1 overflow-hidden ${layoutSettings.centerContent ? "justify-center" : ""}`}
+				>
 					<div
 						className="flex min-w-0 flex-1 overflow-hidden"
-						style={{ maxWidth: `${noteWidthPct}%` }}
+						style={{
+							maxWidth: `${layoutSettings.noteWidthPct}%`,
+						}}
 					>
 						<EditorPane
 							bufferId={activeBuffer.id}
 							filePath={activeBuffer.filePath}
 							initialDoc={activeBuffer.doc}
-							vimEnabled={vimEnabled}
+							vimEnabled={vimSettings.enabled}
+							editorOpts={editorOpts}
+							vimOpts={vimOpts}
 							vimHostBindings={vimHostBindings}
 							onVimModeChange={onVimModeChange}
 							onSelectionChange={setSelection}
 							onChange={() => {
 								// Idle-debounced write-back wires in next slice.
 							}}
-							className="h-full w-full overflow-auto px-6 py-6"
+							className="h-full w-full overflow-auto"
+							style={{
+								padding: "var(--editor-padding-y) var(--editor-padding-x)",
+							}}
 						/>
 					</div>
 				</div>
-				{viewOpen ? (
+				{viewOpen && !viewSidebarOnLeft ? (
 					<ViewCard
 						blocks={blocks}
 						view={viewOpen}
 						onClose={() => setViewOpen(null)}
-						className="w-[clamp(320px,28vw,480px)] shrink-0 border-border border-l"
+						className="shrink-0 border-border border-l"
+						style={{ width: "var(--view-sidebar-width)" }}
 					/>
 				) : null}
 			</main>
@@ -498,9 +602,14 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 				ctx={ctx}
 				open={open}
 				seed={paletteSeed}
+				appearance={paletteAppearance}
 				onClose={() => setOpen(false)}
 			/>
-			<SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+			<SettingsDialog
+				open={settingsOpen}
+				onOpenChange={setSettingsOpen}
+				vaultPath={vaultPath}
+			/>
 			<BlockDetailsPopover
 				block={selectedBlock}
 				open={blockDetailsOpen}

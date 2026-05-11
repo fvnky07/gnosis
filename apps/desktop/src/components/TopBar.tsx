@@ -6,6 +6,8 @@ import {
 	NotebookPenIcon,
 	SearchIcon,
 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useSettings } from "../lib/settings-store";
 
 interface TopBarProps {
 	/** Vault root absolute path; used to compute the relative file label. */
@@ -23,6 +25,8 @@ interface TopBarProps {
 	className?: string;
 }
 
+const READING_WPM = 250;
+
 /**
  * Single horizontal chrome at the top of the shell. Layout:
  *
@@ -38,6 +42,10 @@ interface TopBarProps {
  * card. The center cluster is absolutely positioned so its placement does
  * not depend on the variable widths of the side groups. The whole bar is a
  * Tauri drag region; interactive children opt out via `no-drag-region`.
+ *
+ * Every slot (file path, mode pill, line:col, words, chars, reading time,
+ * vim register, clock) is gated by an `interface.topBar.show*` setting so
+ * users pick which indicators show up.
  */
 export function TopBar({
 	vaultPath,
@@ -47,6 +55,8 @@ export function TopBar({
 	onOpenView,
 	className,
 }: TopBarProps) {
+	const tb = useSettings((s) => s.interface.topBar);
+	const clock = useClock(tb.showClock);
 	const fileLabel = formatFileLabel(vaultPath, activeFilePath);
 	return (
 		<div
@@ -56,12 +66,14 @@ export function TopBar({
 		>
 			<div aria-hidden className="w-[72px] shrink-0" />
 
-			<span
-				className="no-drag-region max-w-[200px] truncate font-mono text-[11px] text-foreground"
-				title={activeFilePath}
-			>
-				{fileLabel}
-			</span>
+			{tb.showFilePath ? (
+				<span
+					className="no-drag-region max-w-[200px] truncate font-mono text-[11px] text-foreground"
+					title={activeFilePath}
+				>
+					{fileLabel}
+				</span>
+			) : null}
 
 			<div className="absolute left-1/2 flex -translate-x-1/2 items-center gap-1.5">
 				<button
@@ -91,10 +103,15 @@ export function TopBar({
 				aria-label="Status"
 				className="no-drag-region ml-auto inline-flex items-center gap-3 whitespace-nowrap font-mono text-[11px] text-muted-foreground"
 			>
-				<ModePill monochrome />
-				<span>{formatLocation(selection)}</span>
-				<span>{formatWords(selection)}</span>
-				<span>{formatChars(selection)}</span>
+				{tb.showMode ? <ModePill monochrome /> : null}
+				{tb.showVimRegister ? <span>"{readRegister() || "_"}</span> : null}
+				{tb.showLineCol ? <span>{formatLocation(selection)}</span> : null}
+				{tb.showWordCount ? <span>{formatWords(selection)}</span> : null}
+				{tb.showCharCount ? <span>{formatChars(selection)}</span> : null}
+				{tb.showReadingTime ? (
+					<span>{formatReadingTime(selection)}</span>
+				) : null}
+				{tb.showClock ? <span>{clock}</span> : null}
 			</nav>
 		</div>
 	);
@@ -120,6 +137,30 @@ function IconButton({
 			<Icon className="size-3.5" />
 		</button>
 	);
+}
+
+function readRegister(): string {
+	// Placeholder for the rebind/clipboard PR — cm-vim does not yet expose
+	// the active register through its host API.
+	return "";
+}
+
+function useClock(enabled: boolean): string {
+	const [time, setTime] = useState(() => formatClock(new Date()));
+	useEffect(() => {
+		if (!enabled) return;
+		const tick = () => setTime(formatClock(new Date()));
+		tick();
+		const id = window.setInterval(tick, 30 * 1000);
+		return () => window.clearInterval(id);
+	}, [enabled]);
+	return time;
+}
+
+function formatClock(d: Date): string {
+	const hh = d.getHours().toString().padStart(2, "0");
+	const mm = d.getMinutes().toString().padStart(2, "0");
+	return `${hh}:${mm}`;
 }
 
 function formatFileLabel(vaultPath: string, filePath: string): string {
@@ -165,4 +206,11 @@ function formatChars(selection: SelectionInfo | null): string {
 		return `${sel}/${total} chars`;
 	}
 	return `${total} chars`;
+}
+
+function formatReadingTime(selection: SelectionInfo | null): string {
+	const words = selection?.totalWords ?? 0;
+	if (words === 0) return "0 min";
+	const minutes = Math.max(1, Math.round(words / READING_WPM));
+	return `${minutes} min read`;
 }
