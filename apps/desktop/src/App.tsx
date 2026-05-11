@@ -453,7 +453,7 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 	const vimEnabled = useSettings((s) => s.vimEnabled);
 
 	return (
-		<div className="drag-region flex h-dvh w-dvw flex-col overflow-hidden bg-background p-2 text-foreground">
+		<div className="drag-region flex h-dvh w-dvw flex-col overflow-hidden bg-background px-2 pt-0 pb-2 text-foreground">
 			<TopBar
 				vaultPath={vaultPath}
 				activeFilePath={activeBuffer.filePath}

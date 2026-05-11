@@ -29,15 +29,15 @@ interface TopBarProps {
  *   [traffic-light spacer][filename] · · · [search pill][agenda][journal] · · · [mode][loc][words][chars]
  *
  * The macOS native traffic lights are drawn by the OS (Tauri `titleBarStyle: "Overlay"`),
- * so we just reserve 72px on the left. The bar is 44px tall — taller than the
- * default OS title bar overlay (~28px) so the search pill and status row read
- * as proper toolbar items rather than a thin status strip, while still letting
- * the OS traffic lights sit at their default y-offset (looks centered enough).
- * The center cluster is absolutely positioned so its position does not depend
- * on the variable widths of the side groups. The filename sits left-of-center
- * so the user always knows what they're editing without scanning to the right.
- * The whole bar is a Tauri drag region; interactive children opt out via
- * `no-drag-region`.
+ * so we just reserve 72px on the left. The bar is sized to align its content
+ * row with the OS traffic-light center: 30px tall with `pb-[2px]` inset, so
+ * `items-center` centers content in a 28px box starting at window y=0. The
+ * macOS overlay puts traffic-light centers at y≈14 — a 28px-tall pill
+ * (`h-7`) centered in this box has its center at y=14, matching exactly. A
+ * 2px strip at the bar's bottom provides breathing room before the editor
+ * card. The center cluster is absolutely positioned so its placement does
+ * not depend on the variable widths of the side groups. The whole bar is a
+ * Tauri drag region; interactive children opt out via `no-drag-region`.
  */
 export function TopBar({
 	vaultPath,
@@ -52,7 +52,7 @@ export function TopBar({
 		<div
 			role="toolbar"
 			aria-label="Top bar"
-			className={`drag-region relative flex h-11 shrink-0 items-center px-2 ${className ?? ""}`}
+			className={`drag-region relative flex h-[30px] shrink-0 items-center px-2 pb-[2px] ${className ?? ""}`}
 		>
 			<div aria-hidden className="w-[72px] shrink-0" />
 
