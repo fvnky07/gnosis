@@ -8,6 +8,7 @@ export interface GlobalVimDeps {
 	openBlockDetails: () => void;
 	openOutline: () => void;
 	openViewsSubmode: () => void;
+	openSchedule: () => void;
 }
 
 const LEADER_TIMEOUT_MS = 300;
@@ -104,5 +105,7 @@ function fireLeader(entry: LeaderEntry, deps: GlobalVimDeps) {
 			return deps.openOutline();
 		case "view":
 			return deps.openViewsSubmode();
+		case "schedule":
+			return deps.openSchedule();
 	}
 }

@@ -14,10 +14,15 @@
 
 import {
 	type CaptureKind,
+	captureScheduledToVault,
 	captureToVault,
+	dailyNotePath,
 	Indexer,
 	type IndexResult,
 	parseHeadline,
+	type ScheduledCaptureInput,
+	type ScheduledCaptureResult,
+	VaultNotFoundError,
 } from "@gnosis/core";
 import type { Block } from "@gnosis/db";
 import type { ViewBlock } from "@gnosis/views";
@@ -33,6 +38,14 @@ export interface DesktopRuntime {
 	indexer: Indexer;
 	coldIndex(): Promise<IndexResult>;
 	capture(kind: CaptureKind, text: string): Promise<{ filePath: string }>;
+	captureScheduled(
+		input: Omit<ScheduledCaptureInput, "todayDailyPath">,
+	): Promise<ScheduledCaptureResult>;
+	openDailyNote(now?: Date): Promise<{
+		filePath: string;
+		doc: string;
+		fileCreated: boolean;
+	}>;
 	loadViewBlocks(): Promise<ViewBlock[]>;
 	searchBlocks(query: string, limit?: number): Promise<FtsRow[]>;
 	listFiles(
@@ -79,6 +92,35 @@ export function createRuntime(vaultPath: string): DesktopRuntime {
 			const result = await captureToVault(vault, kind, text);
 			await indexer.incremental(result.filePath);
 			return { filePath: result.filePath };
+		},
+		async captureScheduled(input) {
+			const now = input.createdAt ?? new Date();
+			const result = await captureScheduledToVault(vault, {
+				...input,
+				createdAt: now,
+				todayDailyPath: dailyNotePath(now),
+			});
+			await indexer.incremental(result.filePath);
+			return result;
+		},
+		async openDailyNote(now = new Date()) {
+			const filePath = dailyNotePath(now);
+			await vault.ensureDir("daily");
+			let doc: string;
+			let fileCreated = false;
+			try {
+				doc = await vault.read(filePath);
+			} catch (err) {
+				if (!(err instanceof VaultNotFoundError)) throw err;
+				const yyyy = now.getFullYear();
+				const mm = String(now.getMonth() + 1).padStart(2, "0");
+				const dd = String(now.getDate()).padStart(2, "0");
+				doc = `#+TITLE: ${yyyy}-${mm}-${dd}\n`;
+				await vault.write(filePath, doc);
+				await indexer.incremental(filePath);
+				fileCreated = true;
+			}
+			return { filePath, doc, fileCreated };
 		},
 		async loadViewBlocks() {
 			const rows = await store.getAllBlocks();

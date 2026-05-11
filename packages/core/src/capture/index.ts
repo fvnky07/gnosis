@@ -17,6 +17,15 @@ import type { NewBlock, OrgTimestamp } from "../parser/types";
 import type { Vault } from "../vault";
 import { VaultNotFoundError } from "../vault";
 
+export {
+	buildOrgTimestamp,
+	captureScheduledToVault,
+	composeScheduledCapture,
+	type ScheduledCaptureBlock,
+	type ScheduledCaptureInput,
+	type ScheduledCaptureResult,
+} from "./schedule";
+
 export type CaptureKind = "journal" | "task" | "note";
 
 const WEEKDAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
