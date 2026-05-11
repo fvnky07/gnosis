@@ -9,8 +9,8 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BlockDetailsPopover } from "./components/BlockDetailsPopover";
 import { SettingsDialog } from "./components/SettingsDialog";
-import { StatusBar } from "./components/StatusBar";
 import { TabSwitcher } from "./components/TabSwitcher";
+import { TopBar } from "./components/TopBar";
 import { ViewCard, type ViewKind } from "./components/ViewCard";
 import { EditorPane } from "./EditorPane";
 import { openDb, readSchemaVersion } from "./lib/db";
@@ -450,11 +450,17 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 	void indexNote;
 
 	const noteWidthPct = useSettings((s) => s.noteWidthPct);
-	const statusBarVisible = useSettings((s) => s.statusBarVisible);
 	const vimEnabled = useSettings((s) => s.vimEnabled);
 
 	return (
 		<div className="drag-region flex h-dvh w-dvw flex-col overflow-hidden bg-background p-2 text-foreground">
+			<TopBar
+				vaultPath={vaultPath}
+				activeFilePath={activeBuffer.filePath}
+				selection={selection}
+				onOpenPalette={() => openPaletteWith()}
+				onOpenView={(id) => openView(id)}
+			/>
 			<main className="no-drag-region flex min-h-0 flex-1 items-stretch gap-2 overflow-hidden rounded-xl border border-border bg-card text-card-foreground">
 				<div className="flex min-w-0 flex-1 justify-center overflow-hidden">
 					<div
@@ -485,16 +491,6 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 					/>
 				) : null}
 			</main>
-
-			{statusBarVisible ? (
-				<footer className="no-drag-region flex shrink-0 justify-center px-3 py-1.5">
-					<StatusBar
-						vaultPath={vaultPath}
-						activeFilePath={activeBuffer.filePath}
-						selection={selection}
-					/>
-				</footer>
-			) : null}
 
 			<CommandPalette
 				registry={palette}

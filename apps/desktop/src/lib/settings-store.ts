@@ -6,9 +6,6 @@ interface SettingsState {
 	 * Drives the centered text column inside the editor card. */
 	noteWidthPct: number;
 	setNoteWidthPct(value: number): void;
-	/** Whether the bottom status bar is shown. */
-	statusBarVisible: boolean;
-	setStatusBarVisible(value: boolean): void;
 	/** Whether vim modal editing is active across the shell. */
 	vimEnabled: boolean;
 	setVimEnabled(value: boolean): void;
@@ -19,8 +16,6 @@ export const useSettings = create<SettingsState>()(
 		(set) => ({
 			noteWidthPct: 60,
 			setNoteWidthPct: (value) => set({ noteWidthPct: clamp(value, 30, 100) }),
-			statusBarVisible: true,
-			setStatusBarVisible: (value) => set({ statusBarVisible: value }),
 			vimEnabled: true,
 			setVimEnabled: (value) => set({ vimEnabled: value }),
 		}),

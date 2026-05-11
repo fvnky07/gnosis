@@ -166,21 +166,9 @@ export function SettingsDialog({
 }
 
 function GeneralPane(): ReactNode {
-	const statusBarVisible = useSettings((s) => s.statusBarVisible);
-	const setStatusBarVisible = useSettings((s) => s.setStatusBarVisible);
 	return (
 		<>
 			<PaneHeading>General</PaneHeading>
-			<SettingRow
-				label="Status bar"
-				description="Show the inline status row at the bottom of the window."
-				control={
-					<Switch
-						checked={statusBarVisible}
-						onCheckedChange={setStatusBarVisible}
-					/>
-				}
-			/>
 			<SettingRow
 				label="Restricted mode"
 				description="Restricted mode is off. Turn on to disable community plugins."
