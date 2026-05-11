@@ -1,4 +1,5 @@
 import {
+	type AgendaMode,
 	AgendaView,
 	JournalView,
 	TodosView,
@@ -12,7 +13,12 @@ import {
 	XIcon,
 } from "lucide-react";
 
-export type ViewKind = "journal" | "agenda" | "todos";
+export type ViewKind =
+	| "journal"
+	| "agenda-day"
+	| "agenda-month"
+	| "agenda-year"
+	| "todos";
 
 interface ViewCardProps {
 	blocks: ViewBlock[];
@@ -22,16 +28,32 @@ interface ViewCardProps {
 	style?: import("react").CSSProperties;
 }
 
-const VIEW_META: Record<ViewKind, { label: string; icon: LucideIcon }> = {
+const VIEW_META: Record<
+	ViewKind,
+	{ label: string; icon: LucideIcon; agendaMode?: AgendaMode }
+> = {
 	journal: { label: "Journal", icon: NotebookPenIcon },
-	agenda: { label: "Agenda", icon: CalendarRangeIcon },
+	"agenda-day": {
+		label: "Agenda · Day",
+		icon: CalendarRangeIcon,
+		agendaMode: "day",
+	},
+	"agenda-month": {
+		label: "Agenda · Month",
+		icon: CalendarRangeIcon,
+		agendaMode: "month",
+	},
+	"agenda-year": {
+		label: "Agenda · Year",
+		icon: CalendarRangeIcon,
+		agendaMode: "year",
+	},
 	todos: { label: "Todos", icon: SquareCheckBigIcon },
 };
 
 /**
- * Right-side companion to the editor card. One view per card — the host
- * swaps `view` when the user opens a different one (no tab strip lives
- * inside the card). Header only carries the view label and close button.
+ * Card wrapper for a single view. Renders as a pane inside the workspace
+ * track; sizing belongs to the parent (`PaneShell` / `<main>` flex row).
  */
 export function ViewCard({
 	blocks,
@@ -43,8 +65,8 @@ export function ViewCard({
 	const meta = VIEW_META[view];
 	const Icon = meta.icon;
 	return (
-		<aside
-			className={`flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-sm ${className ?? ""}`}
+		<section
+			className={`flex h-full min-h-0 w-full flex-col overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-sm ${className ?? ""}`}
 			style={style}
 		>
 			<header className="flex h-8 shrink-0 items-center gap-2 border-border/60 border-b px-3">
@@ -56,16 +78,18 @@ export function ViewCard({
 					type="button"
 					onClick={onClose}
 					className="ml-auto inline-flex size-5 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-					aria-label={`Close ${meta.label} view`}
+					aria-label={`Close ${meta.label}`}
 				>
 					<XIcon className="size-3" />
 				</button>
 			</header>
 			<div className="min-h-0 flex-1 overflow-auto">
 				{view === "journal" ? <JournalView blocks={blocks} /> : null}
-				{view === "agenda" ? <AgendaView blocks={blocks} /> : null}
+				{meta.agendaMode ? (
+					<AgendaView blocks={blocks} defaultMode={meta.agendaMode} />
+				) : null}
 				{view === "todos" ? <TodosView blocks={blocks} /> : null}
 			</div>
-		</aside>
+		</section>
 	);
 }

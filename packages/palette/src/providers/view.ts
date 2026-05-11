@@ -1,7 +1,7 @@
-import type { PaletteProvider } from "../types";
+import type { PaletteProvider, PaletteViewId } from "../types";
 
 const VIEWS: {
-	id: "journal" | "agenda" | "todos";
+	id: PaletteViewId;
 	label: string;
 	detail: string;
 }[] = [
@@ -10,7 +10,21 @@ const VIEWS: {
 		label: "Open Journal",
 		detail: "Reverse-chronological captures",
 	},
-	{ id: "agenda", label: "Open Agenda", detail: "Week / day / month grids" },
+	{
+		id: "agenda-day",
+		label: "Open Agenda · Day",
+		detail: "Today's scheduled items",
+	},
+	{
+		id: "agenda-month",
+		label: "Open Agenda · Month",
+		detail: "Six-week month grid",
+	},
+	{
+		id: "agenda-year",
+		label: "Open Agenda · Year",
+		detail: "12-month overview",
+	},
 	{ id: "todos", label: "Open Todos", detail: "Kanban + list" },
 ];
 
@@ -45,11 +59,7 @@ export const viewProvider: PaletteProvider = {
 		}));
 	},
 	async onSubmit(item, ctx) {
-		const viewId = item.meta?.viewId as
-			| "journal"
-			| "agenda"
-			| "todos"
-			| undefined;
+		const viewId = item.meta?.viewId as PaletteViewId | undefined;
 		if (!viewId) return;
 		await ctx.exec.openView(viewId);
 	},

@@ -64,11 +64,23 @@ export interface TabHit {
 	active?: boolean;
 }
 
+/**
+ * Stable view identifiers exposed to the palette. The host maps these onto
+ * its internal pane kind (`agenda` → `agenda-day`, etc.).
+ */
+export type PaletteViewId =
+	| "journal"
+	| "agenda"
+	| "agenda-day"
+	| "agenda-month"
+	| "agenda-year"
+	| "todos";
+
 export interface PaletteExecutors {
 	captureJournal(text: string): Promise<void>;
 	captureTask(text: string): Promise<void>;
 	captureNote(text: string): Promise<void>;
-	openView(viewId: "journal" | "agenda" | "todos"): Promise<void>;
+	openView(viewId: PaletteViewId): Promise<void>;
 	runCommand(commandId: string): Promise<void>;
 	listFiles(query: string): Promise<FileHit[]>;
 	searchBlocks(query: string): Promise<BlockHit[]>;

@@ -13,6 +13,20 @@ interface AgendaViewProps {
 }
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTH_LABELS = [
+	"Jan",
+	"Feb",
+	"Mar",
+	"Apr",
+	"May",
+	"Jun",
+	"Jul",
+	"Aug",
+	"Sep",
+	"Oct",
+	"Nov",
+	"Dec",
+];
 
 /**
  * Calendar-style agenda. The host pumps the relevant `blocks[]` (anything
@@ -42,7 +56,7 @@ export function AgendaView({
 					Agenda
 				</span>
 				<div className="flex gap-1 text-xs">
-					{(["day", "week", "month"] as const).map((m) => (
+					{(["day", "week", "month", "year"] as const).map((m) => (
 						<button
 							key={m}
 							type="button"
@@ -73,6 +87,12 @@ export function AgendaView({
 				/>
 			) : mode === "month" ? (
 				<MonthGrid
+					slots={range.slots}
+					onOpenBlock={onOpenBlock}
+					referenceNow={referenceNow}
+				/>
+			) : mode === "year" ? (
+				<YearGrid
 					slots={range.slots}
 					onOpenBlock={onOpenBlock}
 					referenceNow={referenceNow}
@@ -122,6 +142,92 @@ function DayList({ slots, onOpenBlock, referenceNow }: ListLikeProps) {
 					)}
 				</section>
 			))}
+		</div>
+	);
+}
+
+function YearGrid({ slots, onOpenBlock, referenceNow }: ListLikeProps) {
+	// Bucket the year's slots into 12 months. Each month thumbnail is a 7-col
+	// grid of day cells; cells with any blocks render as a filled dot.
+	const months: { label: string; index: number; slots: typeof slots }[] = [];
+	for (let i = 0; i < 12; i++) {
+		months.push({ label: MONTH_LABELS[i] ?? "", index: i, slots: [] });
+	}
+	for (const slot of slots) {
+		const m = slot.date.getMonth();
+		months[m]?.slots.push(slot);
+	}
+	const referenceMonth = referenceNow.getMonth();
+	const referenceYear = referenceNow.getFullYear();
+	return (
+		<div className="grid grid-cols-3 gap-2 overflow-auto p-3 sm:grid-cols-4">
+			{months.map((month) => {
+				const firstSlot = month.slots[0];
+				const monthDate = firstSlot
+					? new Date(firstSlot.date.getFullYear(), month.index, 1)
+					: new Date(referenceYear, month.index, 1);
+				const leadingBlanks = monthDate.getDay();
+				const isCurrent =
+					month.index === referenceMonth &&
+					monthDate.getFullYear() === referenceYear;
+				return (
+					<div
+						key={month.index}
+						className={`rounded-md border border-border/70 p-2 ${
+							isCurrent ? "bg-accent/20" : "bg-background"
+						}`}
+					>
+						<div className="mb-1 flex items-baseline justify-between">
+							<span className="font-mono font-semibold text-[11px] text-foreground">
+								{month.label}
+							</span>
+							<span className="text-[10px] text-muted-foreground">
+								{month.slots.reduce((n, s) => n + s.blocks.length, 0) || ""}
+							</span>
+						</div>
+						<div className="grid grid-cols-7 gap-px">
+							{Array.from({ length: leadingBlanks }, (_, i) => {
+								const blank = new Date(monthDate);
+								blank.setDate(blank.getDate() - (leadingBlanks - i));
+								return (
+									<div
+										key={`blank-${blank.getTime()}`}
+										className="aspect-square"
+									/>
+								);
+							})}
+							{month.slots.map((slot) => {
+								const has = slot.blocks.length > 0;
+								const isToday =
+									slot.date.toDateString() === referenceNow.toDateString();
+								return (
+									<button
+										key={slot.date.getTime()}
+										type="button"
+										onClick={(event) => {
+											const first = slot.blocks[0];
+											if (first)
+												onOpenBlock?.(first, {
+													newTab: event.metaKey || event.ctrlKey,
+												});
+										}}
+										className={`flex aspect-square items-center justify-center rounded-sm text-[9px] ${
+											has
+												? "bg-foreground/80 text-background hover:bg-foreground"
+												: isToday
+													? "bg-accent/60 text-accent-foreground"
+													: "text-muted-foreground/60 hover:bg-muted"
+										}`}
+										aria-label={slot.date.toDateString()}
+									>
+										{slot.date.getDate()}
+									</button>
+								);
+							})}
+						</div>
+					</div>
+				);
+			})}
 		</div>
 	);
 }
