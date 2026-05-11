@@ -26,13 +26,18 @@ interface TopBarProps {
 /**
  * Single horizontal chrome at the top of the shell. Layout:
  *
- *   [traffic-light spacer] · · · [search pill][agenda][journal] · · · [mode][loc][words][chars]
+ *   [traffic-light spacer][filename] · · · [search pill][agenda][journal] · · · [mode][loc][words][chars]
  *
  * The macOS native traffic lights are drawn by the OS (Tauri `titleBarStyle: "Overlay"`),
- * so we just reserve 72px on the left. The center cluster is absolutely positioned
- * so its position does not depend on the variable width of the right-hand status
- * group. The whole `<header>` is a Tauri drag region; interactive children opt
- * out via `no-drag-region`.
+ * so we just reserve 72px on the left. The bar is 44px tall — taller than the
+ * default OS title bar overlay (~28px) so the search pill and status row read
+ * as proper toolbar items rather than a thin status strip, while still letting
+ * the OS traffic lights sit at their default y-offset (looks centered enough).
+ * The center cluster is absolutely positioned so its position does not depend
+ * on the variable widths of the side groups. The filename sits left-of-center
+ * so the user always knows what they're editing without scanning to the right.
+ * The whole bar is a Tauri drag region; interactive children opt out via
+ * `no-drag-region`.
  */
 export function TopBar({
 	vaultPath,
@@ -47,9 +52,16 @@ export function TopBar({
 		<div
 			role="toolbar"
 			aria-label="Top bar"
-			className={`drag-region relative flex h-9 shrink-0 items-center px-2 ${className ?? ""}`}
+			className={`drag-region relative flex h-11 shrink-0 items-center px-2 ${className ?? ""}`}
 		>
 			<div aria-hidden className="w-[72px] shrink-0" />
+
+			<span
+				className="no-drag-region max-w-[200px] truncate font-mono text-[11px] text-foreground"
+				title={activeFilePath}
+			>
+				{fileLabel}
+			</span>
 
 			<div className="absolute left-1/2 flex -translate-x-1/2 items-center gap-1.5">
 				<button
@@ -80,9 +92,6 @@ export function TopBar({
 				className="no-drag-region ml-auto inline-flex items-center gap-3 whitespace-nowrap font-mono text-[11px] text-muted-foreground"
 			>
 				<ModePill monochrome />
-				<span className="text-foreground" title={activeFilePath}>
-					{fileLabel}
-				</span>
 				<span>{formatLocation(selection)}</span>
 				<span>{formatWords(selection)}</span>
 				<span>{formatChars(selection)}</span>
