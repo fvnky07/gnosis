@@ -562,6 +562,7 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 					vaultPath={vaultPath}
 					activeFilePath={activeBuffer.filePath}
 					selection={selection}
+					tabCount={tabs.length}
 					onOpenPalette={() => openPaletteWith()}
 					onOpenView={(id) => openView(id)}
 				/>
