@@ -72,7 +72,9 @@ Range:
 
 ### rendering library
 
-We do NOT pull `react-big-calendar` or `fullcalendar`. Both are heavy and opinionated. We render the grid by hand — it's a few hundred lines of Tailwind grid + pointer events.
+We use [Schedule-X](https://schedule-x.dev) (`@schedule-x/calendar` + `@schedule-x/react`, all MIT/free) for the day/week/month surfaces. The free core ships everything we need: 24h day-planner time grid, 7-col week time grid, multi-day-bar month grid, current-time indicator, and an events-service plugin for incremental updates. CSS is scoped to `.sx-react-calendar-wrapper` and themed via documented `--sx-color-*` variables mapped to base-lyra tokens in [packages/ui/src/styles/globals.css](../packages/ui/src/styles/globals.css).
+
+We do NOT pull `react-big-calendar` (stale UX) or `fullcalendar` (CSS fights Tailwind v4 + `base-lyra` hard). Hand-rolling the grids was the prior plan and ate ~600 LOC including an overlap-packer and sticky headers; Schedule-X collapses that into ~100 LOC of wrapper + adapter. Drag + resize are paid Schedule-X plugins and are out of scope for the MVP — see [issue #15](https://github.com/fvnky07/gnosis/issues/15) for the integration record and the follow-up issue for drag/resize.
 
 ### deadline visualization
 Items with a `DEADLINE:` show on each day from `(deadline - leadDays)` through `deadline`. Color intensifies as the deadline approaches. Lead days configurable; default 7.

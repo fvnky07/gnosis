@@ -16,14 +16,14 @@ const VIEWS: {
 		detail: "Today's scheduled items",
 	},
 	{
+		id: "agenda-week",
+		label: "Open Agenda · Week",
+		detail: "Seven-day time grid",
+	},
+	{
 		id: "agenda-month",
 		label: "Open Agenda · Month",
 		detail: "Six-week month grid",
-	},
-	{
-		id: "agenda-year",
-		label: "Open Agenda · Year",
-		detail: "12-month overview",
 	},
 	{ id: "todos", label: "Open Todos", detail: "Kanban + list" },
 ];
