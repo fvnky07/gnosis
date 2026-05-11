@@ -14,6 +14,7 @@ import {
 } from "@gnosis/vim-runtime";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BlockDetailsPopover } from "./components/BlockDetailsPopover";
+import { AnimatePresence, PaneShell } from "./components/PaneShell";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { TabSwitcher } from "./components/TabSwitcher";
 import { TopBar } from "./components/TopBar";
@@ -58,6 +59,20 @@ drop \`.org\` files into this folder, or capture one via \`⌘K\` →
 \`j hello world\`. on next launch the indexer will pick them up
 and the editor will open the first one instead of this welcome doc.
 `;
+
+/**
+ * Maps palette / vim view ids to internal pane kinds. The palette currently
+ * exposes `agenda` (back-compat alias for the day view) plus the explicit
+ * `agenda-day | agenda-month | agenda-year` ids.
+ */
+function resolveViewKind(id: string): ViewKind {
+	if (id === "journal" || id === "todos") return id;
+	if (id === "agenda-day" || id === "agenda" || id === "agenda-week")
+		return "agenda-day";
+	if (id === "agenda-month") return "agenda-month";
+	if (id === "agenda-year") return "agenda-year";
+	return "journal";
+}
 
 export default function App() {
 	const [status, setStatus] = useState<BootstrapStatus>({ kind: "starting" });
@@ -140,13 +155,29 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 	}>({ id: "welcome", filePath: "(welcome)", doc: WELCOME_ORG });
 	const [selection, setSelection] = useState<SelectionInfo | null>(null);
 
-	// One view at a time, or none. Replaces the former sidebar+tab strip.
-	const [viewOpen, setViewOpen] = useState<ViewKind | null>(null);
+	// Multi-pane workspace: each open view renders as a peer pane in the
+	// main flex row alongside the editor. Duplicate kinds are ignored so the
+	// palette opening "agenda-day" twice doesn't stack panes.
+	const [openPanes, setOpenPanes] = useState<ViewKind[]>([]);
 
-	const openView = useCallback((id: string) => {
-		const next: ViewKind = id === "agenda" || id === "todos" ? id : "journal";
-		setViewOpen(next);
+	const openPane = useCallback((kind: ViewKind) => {
+		setOpenPanes((cur) => (cur.includes(kind) ? cur : [...cur, kind]));
 	}, []);
+
+	const closePane = useCallback((kind: ViewKind) => {
+		setOpenPanes((cur) => cur.filter((k) => k !== kind));
+	}, []);
+
+	const closeAllPanes = useCallback(() => {
+		setOpenPanes([]);
+	}, []);
+
+	const openView = useCallback(
+		(id: string) => {
+			openPane(resolveViewKind(id));
+		},
+		[openPane],
+	);
 
 	const refresh = useCallback(async () => {
 		const next = await runtime.loadViewBlocks();
@@ -360,8 +391,7 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 		[runtime, refresh, openPaletteWith, openView],
 	);
 
-	// Cmd+Shift+B no longer toggles the sidebar — repurpose it to close the
-	// currently-open view (a no-op if nothing is open).
+	// Cmd+Shift+B closes every open view pane (no-op if none are open).
 	useEffect(() => {
 		function onKeyDown(event: KeyboardEvent) {
 			const isMac =
@@ -369,14 +399,14 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 			const summon = isMac ? event.metaKey : event.ctrlKey;
 			if (summon && event.shiftKey && event.key.toLowerCase() === "b") {
 				event.preventDefault();
-				setViewOpen(null);
+				closeAllPanes();
 			}
 		}
 		window.addEventListener("keydown", onKeyDown);
 		return () => {
 			window.removeEventListener("keydown", onKeyDown);
 		};
-	}, []);
+	}, [closeAllPanes]);
 
 	// Cmd+, opens the settings dialog (parity with palette command and the
 	// vim `:settings` ex command).
@@ -517,8 +547,6 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 		[vimSettings],
 	);
 
-	const viewSidebarOnLeft = layoutSettings.viewSidebarPosition === "left";
-
 	return (
 		<div
 			className="drag-region flex h-dvh w-dvw flex-col overflow-hidden bg-background text-foreground"
@@ -539,61 +567,57 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 				/>
 			) : null}
 			<main
-				className="no-drag-region flex min-h-0 flex-1 items-stretch overflow-hidden rounded-xl bg-card text-card-foreground"
+				className="no-drag-region flex min-h-0 flex-1 items-stretch overflow-hidden"
 				style={{
 					gap: "var(--inner-gap)",
 					borderWidth: cardBorderVisible ? "1px" : "0px",
 					borderStyle: "solid",
 					borderColor: "var(--border)",
+					borderRadius: "var(--radius-xl, 0.75rem)",
 				}}
 			>
-				{viewOpen && viewSidebarOnLeft ? (
-					<ViewCard
-						blocks={blocks}
-						view={viewOpen}
-						onClose={() => setViewOpen(null)}
-						className="shrink-0 border-border border-r"
-						style={{ width: "var(--view-sidebar-width)" }}
-					/>
-				) : null}
-				<div
-					className={`flex min-w-0 flex-1 overflow-hidden ${layoutSettings.centerContent ? "justify-center" : ""}`}
-				>
-					<div
-						className="flex min-w-0 flex-1 overflow-hidden"
-						style={{
-							maxWidth: `${layoutSettings.noteWidthPct}%`,
-						}}
-					>
-						<EditorPane
-							bufferId={activeBuffer.id}
-							filePath={activeBuffer.filePath}
-							initialDoc={activeBuffer.doc}
-							vimEnabled={vimSettings.enabled}
-							editorOpts={editorOpts}
-							vimOpts={vimOpts}
-							vimHostBindings={vimHostBindings}
-							onVimModeChange={onVimModeChange}
-							onSelectionChange={setSelection}
-							onChange={() => {
-								// Idle-debounced write-back wires in next slice.
-							}}
-							className="h-full w-full overflow-auto"
-							style={{
-								padding: "var(--editor-padding-y) var(--editor-padding-x)",
-							}}
-						/>
-					</div>
-				</div>
-				{viewOpen && !viewSidebarOnLeft ? (
-					<ViewCard
-						blocks={blocks}
-						view={viewOpen}
-						onClose={() => setViewOpen(null)}
-						className="shrink-0 border-border border-l"
-						style={{ width: "var(--view-sidebar-width)" }}
-					/>
-				) : null}
+				<AnimatePresence initial={false}>
+					<PaneShell key="editor" paneKey="editor">
+						<div
+							className={`flex h-full min-w-0 flex-1 overflow-hidden rounded-xl bg-card text-card-foreground ${layoutSettings.centerContent ? "justify-center" : ""}`}
+						>
+							<div
+								className="flex min-w-0 flex-1 overflow-hidden"
+								style={{
+									maxWidth: `${layoutSettings.noteWidthPct}%`,
+								}}
+							>
+								<EditorPane
+									bufferId={activeBuffer.id}
+									filePath={activeBuffer.filePath}
+									initialDoc={activeBuffer.doc}
+									vimEnabled={vimSettings.enabled}
+									editorOpts={editorOpts}
+									vimOpts={vimOpts}
+									vimHostBindings={vimHostBindings}
+									onVimModeChange={onVimModeChange}
+									onSelectionChange={setSelection}
+									onChange={() => {
+										// Idle-debounced write-back wires in next slice.
+									}}
+									className="h-full w-full overflow-auto"
+									style={{
+										padding: "var(--editor-padding-y) var(--editor-padding-x)",
+									}}
+								/>
+							</div>
+						</div>
+					</PaneShell>
+					{openPanes.map((kind) => (
+						<PaneShell key={kind} paneKey={kind}>
+							<ViewCard
+								blocks={blocks}
+								view={kind}
+								onClose={() => closePane(kind)}
+							/>
+						</PaneShell>
+					))}
+				</AnimatePresence>
 			</main>
 
 			<CommandPalette

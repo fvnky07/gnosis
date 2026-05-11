@@ -111,14 +111,16 @@ describe("viewProvider", () => {
 		expect(viewProvider.match("v journal", ctx)).toBe(true);
 		expect(viewProvider.match("vault", ctx)).toBe(false);
 	});
-	it("returns all three views on empty body", async () => {
+	it("returns every view on empty body", async () => {
 		const items = await viewProvider.results(
 			"v ",
 			new AbortController().signal,
 			makeCtx(),
 		);
 		expect(items.map((i) => i.meta?.viewId).sort()).toEqual([
-			"agenda",
+			"agenda-day",
+			"agenda-month",
+			"agenda-year",
 			"journal",
 			"todos",
 		]);
@@ -135,12 +137,12 @@ describe("viewProvider", () => {
 	it("calls openView with the chosen id on submit", async () => {
 		const ctx = makeCtx();
 		const items = await viewProvider.results(
-			"v agenda",
+			"v agenda-day",
 			new AbortController().signal,
 			ctx,
 		);
 		await viewProvider.onSubmit(items[0], ctx);
-		expect(ctx.exec.openView).toHaveBeenCalledWith("agenda");
+		expect(ctx.exec.openView).toHaveBeenCalledWith("agenda-day");
 	});
 });
 

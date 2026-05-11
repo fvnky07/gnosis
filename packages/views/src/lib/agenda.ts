@@ -2,7 +2,7 @@ import type { ViewBlock } from "../types";
 import { parseOrgDate, startOfDay } from "./relative-date";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-export type AgendaMode = "day" | "week" | "month";
+export type AgendaMode = "day" | "week" | "month" | "year";
 
 export interface AgendaSlot {
 	date: Date;
@@ -31,6 +31,7 @@ export interface ComputeAgendaOptions {
  * Day mode: a single slot for `now`'s local day.
  * Week mode: 7 slots Sunday→Saturday containing `now`.
  * Month mode: 6 weeks × 7 days starting from the Sunday before the 1st.
+ * Year mode: 365/366 slots from Jan 1 to Dec 31 of `now`'s year.
  */
 export function computeAgenda(
 	blocks: ViewBlock[],
@@ -66,6 +67,11 @@ function rangeForMode(
 		weekStart.setDate(today.getDate() - today.getDay());
 		const weekEnd = new Date(weekStart.getTime() + 7 * DAY_MS);
 		return { start: weekStart, end: weekEnd };
+	}
+	if (mode === "year") {
+		const start = new Date(today.getFullYear(), 0, 1);
+		const end = new Date(today.getFullYear() + 1, 0, 1);
+		return { start, end };
 	}
 	const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 	const start = new Date(firstOfMonth);

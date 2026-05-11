@@ -1,4 +1,4 @@
-import type { PaletteItem, PaletteProvider } from "../types";
+import type { PaletteItem, PaletteProvider, PaletteViewId } from "../types";
 
 interface RootEntry {
 	id: string;
@@ -14,7 +14,7 @@ interface RootEntry {
 	 * typing into the appropriate sub-provider. */
 	seed?: string;
 	/** Direct action: openView. Mutually exclusive with seed + command. */
-	openView?: "journal" | "agenda" | "todos";
+	openView?: PaletteViewId;
 	/** Direct action: runCommand against the host CommandRegistry. */
 	command?: string;
 }
@@ -63,11 +63,28 @@ const ROOT_ENTRIES: RootEntry[] = [
 		openView: "journal",
 	},
 	{
-		id: "root.view.agenda",
-		label: "Open Agenda",
-		detail: "Week / day / month grids",
+		id: "root.view.agenda-day",
+		label: "Open Agenda · Day",
+		detail: "Today's scheduled items",
 		section: "Views",
-		openView: "agenda",
+		openView: "agenda-day",
+		keywords: ["agenda", "today"],
+	},
+	{
+		id: "root.view.agenda-month",
+		label: "Open Agenda · Month",
+		detail: "Six-week month grid",
+		section: "Views",
+		openView: "agenda-month",
+		keywords: ["agenda", "calendar"],
+	},
+	{
+		id: "root.view.agenda-year",
+		label: "Open Agenda · Year",
+		detail: "12-month overview",
+		section: "Views",
+		openView: "agenda-year",
+		keywords: ["agenda", "year"],
 	},
 	{
 		id: "root.view.todos",
@@ -187,11 +204,7 @@ export const rootMenuProvider: PaletteProvider = {
 		}));
 	},
 	async onSubmit(item, ctx) {
-		const viewId = item.meta?.openView as
-			| "journal"
-			| "agenda"
-			| "todos"
-			| undefined;
+		const viewId = item.meta?.openView as PaletteViewId | undefined;
 		if (viewId) {
 			await ctx.exec.openView(viewId);
 			return;
