@@ -6,7 +6,7 @@ import type {
 	VimOptions,
 } from "@gnosis/editor";
 import { CommandPalette, type PaletteCtx } from "@gnosis/palette";
-import type { ViewBlock } from "@gnosis/views";
+import type { OnOpenBlock, ViewBlock } from "@gnosis/views";
 import {
 	useGlobalVim,
 	useVimRuntime,
@@ -75,14 +75,13 @@ and the editor will open the first one instead of this welcome doc.
 /**
  * Maps palette / vim view ids to internal pane kinds. The palette currently
  * exposes `agenda` (back-compat alias for the day view) plus the explicit
- * `agenda-day | agenda-month | agenda-year` ids.
+ * `agenda-day | agenda-week | agenda-month` ids.
  */
 function resolveViewKind(id: string): ViewKind {
 	if (id === "journal" || id === "todos") return id;
-	if (id === "agenda-day" || id === "agenda" || id === "agenda-week")
-		return "agenda-day";
+	if (id === "agenda-day" || id === "agenda") return "agenda-day";
+	if (id === "agenda-week") return "agenda-week";
 	if (id === "agenda-month") return "agenda-month";
-	if (id === "agenda-year") return "agenda-year";
 	return "journal";
 }
 
@@ -203,6 +202,24 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 		const within = (el as Element).closest?.("[data-pane-id]");
 		return within?.getAttribute("data-pane-id") ?? EDITOR_LEAF_ID;
 	}, []);
+
+	// ViewBlock already carries `filePath`, so we skip the `runtime.openBlock`
+	// DB roundtrip the palette uses. Both currently land on the same buffer
+	// (neither jumps to a line yet); revisit if line-jumping is added and
+	// route both paths through a shared helper to avoid divergence.
+	const handleOpenBlock = useCallback<OnOpenBlock>(
+		(block) => {
+			void (async () => {
+				const doc = await runtime.openFile(block.filePath);
+				setActiveBuffer({
+					id: block.filePath,
+					filePath: block.filePath,
+					doc,
+				});
+			})();
+		},
+		[runtime],
+	);
 
 	const refresh = useCallback(async () => {
 		const next = await runtime.loadViewBlocks();
@@ -717,6 +734,7 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 						blocks={blocks}
 						view={kind}
 						onClose={() => closeLeaf(leaf.id)}
+						onOpenBlock={handleOpenBlock}
 					/>
 				</PaneShell>
 			);
@@ -726,6 +744,7 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 			blocks,
 			closeLeaf,
 			editorOpts,
+			handleOpenBlock,
 			layoutSettings.centerContent,
 			layoutSettings.noteWidthPct,
 			onVimModeChange,
