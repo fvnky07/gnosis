@@ -86,8 +86,17 @@ const PROVIDER_ICONS: Record<string, LucideIcon> = {
 	tabs: FilesIcon,
 };
 
-const FOOTER_HINT =
-	"> commands · f files · b blocks · j/t/n capture · v views · ? help";
+/** Section-label → icon. Used when an item carries an explicit `section`
+ * (e.g. items emitted by the root-menu provider). Falls back to the
+ * provider icon if the section has no entry here. */
+const SECTION_ICONS: Record<string, LucideIcon> = {
+	Navigation: FileTextIcon,
+	Views: LayoutGridIcon,
+	Capture: PlusIcon,
+	Actions: SettingsIcon,
+	Hotkeys: TerminalIcon,
+	Help: HelpCircleIcon,
+};
 
 /**
  * The CommandPalette React component. Each row renders as
@@ -151,6 +160,15 @@ export function CommandPalette({
 			}
 			const found = flat.find((entry) => entry.item.id === itemId);
 			if (!found) return;
+			// Items in the root menu may carry a `seed` prefix — selecting them
+			// fills the input with that prefix and keeps the palette open so
+			// the matching sub-provider takes over. No frecency bump because
+			// the user isn't done picking yet.
+			const seed = found.item.meta?.seed;
+			if (typeof seed === "string" && seed.length > 0) {
+				dispatch({ type: "set-query", query: seed });
+				return;
+			}
 			const provider = registry.get(found.providerId);
 			if (!provider) return;
 			if (onFrecencyChange) {
@@ -202,26 +220,20 @@ export function CommandPalette({
 						{flatItems.length === 0 ? (
 							<CommandEmpty>{renderEmpty(state)}</CommandEmpty>
 						) : null}
-						{results.map((bucket) => (
-							<CommandGroup
-								key={bucket.providerId}
-								heading={
-									PROVIDER_LABELS[bucket.providerId] ?? bucket.providerId
-								}
-							>
-								{bucket.items.map((item) => (
+						{groupBySection(results).map((group) => (
+							<CommandGroup key={group.key} heading={group.heading}>
+								{group.entries.map((entry) => (
 									<PaletteRow
-										key={item.id}
-										item={item}
-										providerId={bucket.providerId}
+										key={entry.item.id}
+										item={entry.item}
+										providerId={entry.providerId}
 										onSelect={handleSelect}
 									/>
 								))}
 							</CommandGroup>
 						))}
 					</CommandList>
-					<div className="flex h-7 items-center justify-between border-border/60 border-t px-3 font-mono text-[10px] text-muted-foreground">
-						<span className="truncate">{FOOTER_HINT}</span>
+					<div className="flex h-7 items-center justify-end border-border/60 border-t px-3 font-mono text-[10px] text-muted-foreground">
 						<span className="shrink-0">↵ select · esc close</span>
 					</div>
 				</Command>
@@ -270,16 +282,80 @@ function PaletteIcon({
 	providerId: string;
 }): ReactNode {
 	if (item.icon) return <span className="size-4 shrink-0">{item.icon}</span>;
-	if (item.id?.startsWith("command:settings"))
+	if (
+		item.id?.startsWith("command:settings") ||
+		item.id === "root.action.settings"
+	)
 		return <SettingsIcon className="size-4 shrink-0 text-muted-foreground" />;
+	const iconKey = item.meta?.iconKey as string | undefined;
+	if (iconKey && PROVIDER_ICONS[iconKey]) {
+		const Icon = PROVIDER_ICONS[iconKey];
+		return <Icon className="size-4 shrink-0 text-muted-foreground" />;
+	}
+	if (item.section && SECTION_ICONS[item.section]) {
+		const Icon = SECTION_ICONS[item.section];
+		return <Icon className="size-4 shrink-0 text-muted-foreground" />;
+	}
 	const Icon = PROVIDER_ICONS[providerId];
 	if (!Icon) return null;
 	return <Icon className="size-4 shrink-0 text-muted-foreground" />;
 }
 
-function renderEmpty(state: PaletteState): string {
-	if (state.query.trim() === "") {
-		return FOOTER_HINT;
+interface SectionGroup {
+	key: string;
+	heading: string;
+	entries: { item: PaletteItem; providerId: string }[];
+}
+
+/**
+ * Group merged provider results into rendered sections. Items that carry
+ * an explicit `section` field (e.g. root-menu items) drive the heading
+ * directly; everything else falls back to its provider label. Order is
+ * preserved from the input so provider rank still controls the visual
+ * order.
+ */
+function groupBySection(results: ProviderResult[]): SectionGroup[] {
+	const groups = new Map<string, SectionGroup>();
+	for (const bucket of results) {
+		for (const item of bucket.items) {
+			const heading =
+				item.section ?? PROVIDER_LABELS[bucket.providerId] ?? bucket.providerId;
+			const key = `${heading}::${bucket.providerId}`;
+			let group = groups.get(key);
+			if (!group) {
+				group = { key, heading, entries: [] };
+				groups.set(key, group);
+			}
+			group.entries.push({ item, providerId: bucket.providerId });
+		}
 	}
-	return `No matches for "${state.query}"`;
+	return Array.from(groups.values());
+}
+
+function renderEmpty(state: PaletteState): string {
+	const raw = state.query;
+	if (raw.trim() === "") {
+		return "Type to search…";
+	}
+	const hint = prefixHint(raw);
+	if (hint) return hint;
+	return `No matches for "${raw}"`;
+}
+
+/** Prefix-aware empty-state copy. After a sub-provider trigger like
+ * `j `, `f `, `?` etc. the user has committed to a sub-mode — show the
+ * matching call-to-action instead of "No matches", which reads as an
+ * error when in reality the provider is just waiting on text. */
+function prefixHint(query: string): string | null {
+	if (/^j\s/.test(query)) return "Type the journal entry and press Enter";
+	if (/^t\s/.test(query)) return "Type the task title and press Enter";
+	if (/^n\s/.test(query)) return "Type the note text and press Enter";
+	if (/^f\s/.test(query)) return "Type to fuzzy-search vault files";
+	if (/^b\s/.test(query)) return "Type to full-text search blocks";
+	if (/^o\s/.test(query)) return "No headings in the active buffer";
+	if (/^v\s/.test(query)) return "Pick a view: journal · agenda · todos";
+	if (/^tabs(\s|$)/.test(query)) return "Type to filter open buffers";
+	if (/^>/.test(query)) return "Type to filter commands";
+	if (/^\?/.test(query)) return "Palette quick reference";
+	return null;
 }

@@ -1,10 +1,12 @@
 import type { CSSProperties } from "react";
 import { useVimRuntime, type VimMode } from "./store";
 
-/* Each mode binds to a pair of CSS vars defined in
- * `packages/ui/src/styles/globals.css` (`--mode-*` + `--mode-*-fg`). The
- * pill renders as a small uppercase capsule sized to match the status
- * bar's 11px text — half-height of the host bar feels native on macOS. */
+/* Each mode binds to a `--mode-*` CSS color var defined in
+ * `packages/ui/src/styles/globals.css`. The pill uses a translucent
+ * tint of that color for the background and the saturated color for
+ * the text, matching how Apple's HIG renders status chips (Reminders
+ * tags, Music status row, Mail flags) instead of a high-saturation
+ * filled capsule. */
 const MODE_LABELS: Record<VimMode, string> = {
 	NORMAL: "NORMAL",
 	INSERT: "INSERT",
@@ -15,24 +17,25 @@ const MODE_LABELS: Record<VimMode, string> = {
 	LEADER: "LEADER",
 };
 
-const MODE_TOKEN: Record<VimMode, { bg: string; fg: string }> = {
-	NORMAL: { bg: "var(--mode-normal)", fg: "var(--mode-normal-fg)" },
-	INSERT: { bg: "var(--mode-insert)", fg: "var(--mode-insert-fg)" },
-	VISUAL: { bg: "var(--mode-visual)", fg: "var(--mode-visual-fg)" },
-	REPLACE: { bg: "var(--mode-replace)", fg: "var(--mode-replace-fg)" },
-	COMMAND: { bg: "var(--mode-command)", fg: "var(--mode-command-fg)" },
-	LIST: { bg: "var(--mode-list)", fg: "var(--mode-list-fg)" },
-	LEADER: { bg: "var(--mode-leader)", fg: "var(--mode-leader-fg)" },
+const MODE_COLOR: Record<VimMode, string> = {
+	NORMAL: "var(--mode-normal)",
+	INSERT: "var(--mode-insert)",
+	VISUAL: "var(--mode-visual)",
+	REPLACE: "var(--mode-replace)",
+	COMMAND: "var(--mode-command)",
+	LIST: "var(--mode-list)",
+	LEADER: "var(--mode-leader)",
 };
 
 export function ModePill({ className = "" }: { className?: string }) {
 	const mode = useVimRuntime((s) => s.mode);
 	const leaderActive = useVimRuntime((s) => s.leaderActive);
 	const display: VimMode = leaderActive ? "LEADER" : mode;
-	const token = MODE_TOKEN[display];
+	const color = MODE_COLOR[display];
 	const style: CSSProperties = {
-		backgroundColor: token.bg,
-		color: token.fg,
+		backgroundColor: `color-mix(in oklab, ${color} 18%, transparent)`,
+		color,
+		boxShadow: `inset 0 0 0 1px color-mix(in oklab, ${color} 28%, transparent)`,
 	};
 	return (
 		<span

@@ -47,6 +47,12 @@ export function buildVimExtensions(host?: VimHostBindings): Extension[] {
  * Captures NORMAL-mode `:` and `/` before cm-vim sees them and forwards to
  * the host. In INSERT/VISUAL mode the keys pass through so users can still
  * type them as characters or apply ex on a range.
+ *
+ * Permissive about missing vim state: if cm-vim hasn't attached its state
+ * to the view yet (`getCM` returns null), we still intercept rather than
+ * fall through to cm-vim's inline command line. Normal mode is the
+ * default modal state, so being a beat early is safer than the user
+ * seeing the wrong UI.
  */
 function buildCommandLineBridge(open: (trigger: string) => void): Extension {
 	const intercept =
@@ -55,8 +61,9 @@ function buildCommandLineBridge(open: (trigger: string) => void): Extension {
 			const vimSt = cm?.state?.vim as
 				| { insertMode?: boolean; visualMode?: boolean }
 				| undefined;
-			if (!vimSt) return false;
-			if (vimSt.insertMode || vimSt.visualMode) return false;
+			// Only abstain when we are *certain* we're inside insert or visual
+			// mode — those want the raw character. Unknown state → intercept.
+			if (vimSt?.insertMode || vimSt?.visualMode) return false;
 			open(trigger);
 			return true;
 		};

@@ -8,6 +8,7 @@ import {
 	outlineProvider,
 	PaletteRegistry,
 	recentFilesProvider,
+	rootMenuProvider,
 	tabsProvider,
 	viewProvider,
 } from "@gnosis/palette";
@@ -40,6 +41,7 @@ export function usePaletteEngine({
 		const palette = new PaletteRegistry();
 		const commands = new CommandRegistry();
 
+		palette.register(rootMenuProvider);
 		palette.register(helpProvider);
 		palette.register(captureProvider);
 		palette.register(viewProvider);

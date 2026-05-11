@@ -10,6 +10,10 @@ export interface SelectionInfo {
 	totalWords: number;
 	/** Words inside the current selection (0 when collapsed). */
 	selectedWords: number;
+	/** Total character count across the entire document. */
+	totalChars: number;
+	/** Characters inside the current selection (0 when collapsed). */
+	selectedChars: number;
 }
 
 /**
@@ -30,7 +34,9 @@ export function selectionWatcher(
 			info.line === lastInfo.line &&
 			info.col === lastInfo.col &&
 			info.totalWords === lastInfo.totalWords &&
-			info.selectedWords === lastInfo.selectedWords
+			info.selectedWords === lastInfo.selectedWords &&
+			info.totalChars === lastInfo.totalChars &&
+			info.selectedChars === lastInfo.selectedChars
 		) {
 			return;
 		}
@@ -44,10 +50,21 @@ function computeInfo(state: EditorState): SelectionInfo {
 	const lineObj = state.doc.lineAt(main.head);
 	const line = lineObj.number;
 	const col = main.head - lineObj.from + 1;
-	const totalWords = countWords(state.doc.toString());
-	const selectedWords =
-		main.from === main.to ? 0 : countWords(state.sliceDoc(main.from, main.to));
-	return { line, col, totalWords, selectedWords };
+	const doc = state.doc.toString();
+	const totalWords = countWords(doc);
+	const totalChars = doc.length;
+	const selectedRange =
+		main.from === main.to ? "" : state.sliceDoc(main.from, main.to);
+	const selectedWords = countWords(selectedRange);
+	const selectedChars = selectedRange.length;
+	return {
+		line,
+		col,
+		totalWords,
+		selectedWords,
+		totalChars,
+		selectedChars,
+	};
 }
 
 function countWords(input: string): number {

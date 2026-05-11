@@ -16,6 +16,7 @@ import { EditorPane } from "./EditorPane";
 import { openDb, readSchemaVersion } from "./lib/db";
 import { error as logError, info as logInfo, warn as logWarn } from "./lib/log";
 import { createRuntime, type DesktopRuntime } from "./lib/runtime";
+import { useSettings } from "./lib/settings-store";
 import { ensureVaultPath } from "./lib/vault";
 import { usePaletteEngine } from "./use-palette";
 
@@ -335,7 +336,7 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 				openPaletteWith(trigger === "/" ? "b " : "> ");
 			},
 		}),
-		[runtime, refresh, openPaletteWith, openView, setSettingsOpen],
+		[runtime, refresh, openPaletteWith, openView],
 	);
 
 	// Cmd+Shift+B no longer toggles the sidebar — repurpose it to close the
@@ -448,47 +449,52 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 	void schemaVersion;
 	void indexNote;
 
-	return (
-		<div className="flex h-dvh w-dvw flex-col gap-3 overflow-hidden bg-background p-3 pt-0 text-foreground">
-			{/* Top drag strip — invisible, but doubles as the inset for the
-			    macOS traffic lights and gives the user a place to grab the
-			    window from. */}
-			<div className="drag-region h-8 shrink-0" />
+	const noteWidthPct = useSettings((s) => s.noteWidthPct);
+	const statusBarVisible = useSettings((s) => s.statusBarVisible);
+	const vimEnabled = useSettings((s) => s.vimEnabled);
 
-			<main className="flex min-h-0 flex-1 items-stretch justify-center gap-3">
-				<div className="flex min-w-0 max-w-3xl flex-1 overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-sm">
-					<EditorPane
-						bufferId={activeBuffer.id}
-						filePath={activeBuffer.filePath}
-						initialDoc={activeBuffer.doc}
-						vimEnabled
-						vimHostBindings={vimHostBindings}
-						onVimModeChange={onVimModeChange}
-						onSelectionChange={setSelection}
-						onChange={() => {
-							// Idle-debounced write-back wires in next slice.
-						}}
-						className="h-full w-full overflow-auto px-6 py-4"
-					/>
+	return (
+		<div className="drag-region flex h-dvh w-dvw flex-col overflow-hidden bg-background p-2 text-foreground">
+			<main className="no-drag-region flex min-h-0 flex-1 items-stretch gap-2 overflow-hidden rounded-xl border border-border bg-card text-card-foreground">
+				<div className="flex min-w-0 flex-1 justify-center overflow-hidden">
+					<div
+						className="flex min-w-0 flex-1 overflow-hidden"
+						style={{ maxWidth: `${noteWidthPct}%` }}
+					>
+						<EditorPane
+							bufferId={activeBuffer.id}
+							filePath={activeBuffer.filePath}
+							initialDoc={activeBuffer.doc}
+							vimEnabled={vimEnabled}
+							vimHostBindings={vimHostBindings}
+							onVimModeChange={onVimModeChange}
+							onSelectionChange={setSelection}
+							onChange={() => {
+								// Idle-debounced write-back wires in next slice.
+							}}
+							className="h-full w-full overflow-auto px-6 py-6"
+						/>
+					</div>
 				</div>
 				{viewOpen ? (
 					<ViewCard
 						blocks={blocks}
 						view={viewOpen}
 						onClose={() => setViewOpen(null)}
-						className="w-[clamp(320px,28vw,480px)] shrink-0"
+						className="w-[clamp(320px,28vw,480px)] shrink-0 border-border border-l"
 					/>
 				) : null}
 			</main>
 
-			<footer className="flex shrink-0 justify-center">
-				<StatusBar
-					vaultPath={vaultPath}
-					activeFilePath={activeBuffer.filePath}
-					selection={selection}
-					className="max-w-[min(720px,calc(100%-1.5rem))]"
-				/>
-			</footer>
+			{statusBarVisible ? (
+				<footer className="no-drag-region flex shrink-0 justify-center px-3 py-1.5">
+					<StatusBar
+						vaultPath={vaultPath}
+						activeFilePath={activeBuffer.filePath}
+						selection={selection}
+					/>
+				</footer>
+			) : null}
 
 			<CommandPalette
 				registry={palette}
