@@ -89,7 +89,7 @@ export function TopBar({
 				>
 					<SearchIcon className="size-3.5 shrink-0 opacity-70" />
 					<span className="flex-1 text-left">Search vault…</span>
-					<kbd className="rounded bg-background px-1.5 text-muted-foreground text-sm">
+					<kbd className="rounded bg-background px-1.5 font-mono text-muted-foreground text-sm">
 						⌘k
 					</kbd>
 				</button>
