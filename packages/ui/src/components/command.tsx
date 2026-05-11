@@ -61,8 +61,11 @@ function CommandDialog({
 
 function CommandInput({
 	className,
+	trailing,
 	...props
-}: React.ComponentProps<typeof CommandPrimitive.Input>) {
+}: React.ComponentProps<typeof CommandPrimitive.Input> & {
+	trailing?: React.ReactNode;
+}) {
 	return (
 		<div
 			data-slot="command-input-wrapper"
@@ -77,6 +80,14 @@ function CommandInput({
 				)}
 				{...props}
 			/>
+			{trailing ? (
+				<div
+					data-slot="command-input-trailing"
+					className="flex shrink-0 items-center gap-1.5"
+				>
+					{trailing}
+				</div>
+			) : null}
 		</div>
 	);
 }

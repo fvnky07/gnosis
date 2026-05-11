@@ -1,12 +1,12 @@
 import { Button } from "@gnosis/ui/components/button";
-import { Input } from "@gnosis/ui/components/input";
 import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@gnosis/ui/components/select";
+	Combobox,
+	ComboboxContent,
+	ComboboxInput,
+	ComboboxItem,
+	ComboboxList,
+} from "@gnosis/ui/components/combobox";
+import { Input } from "@gnosis/ui/components/input";
 import { Slider } from "@gnosis/ui/components/slider";
 import { Switch } from "@gnosis/ui/components/switch";
 import { cn } from "@gnosis/ui/lib/utils";
@@ -179,19 +179,38 @@ export function SelectField<T extends string>({
 	onChange,
 	widthClass = "w-44",
 }: SelectFieldProps<T>): ReactNode {
+	const selected = options.find((o) => o.value === value);
 	return (
-		<Select value={value} onValueChange={(v) => onChange(v as T)}>
-			<SelectTrigger className={cn(widthClass)}>
-				<SelectValue />
-			</SelectTrigger>
-			<SelectContent>
-				{options.map((opt) => (
-					<SelectItem key={opt.value} value={opt.value}>
-						{opt.label}
-					</SelectItem>
-				))}
-			</SelectContent>
-		</Select>
+		<Combobox
+			items={options as unknown as { value: string; label: string }[]}
+			itemToStringLabel={(item) =>
+				(item as { value: string; label: string }).label
+			}
+			itemToStringValue={(item) =>
+				(item as { value: string; label: string }).value
+			}
+			value={selected as unknown as { value: string; label: string } | null}
+			onValueChange={(next) => {
+				const v = (next as { value: string } | null)?.value;
+				if (typeof v === "string") onChange(v as T);
+			}}
+		>
+			<ComboboxInput
+				showTrigger
+				readOnly
+				className={cn(widthClass)}
+				aria-label="Select an option"
+			/>
+			<ComboboxContent>
+				<ComboboxList>
+					{options.map((opt) => (
+						<ComboboxItem key={opt.value} value={opt}>
+							{opt.label}
+						</ComboboxItem>
+					))}
+				</ComboboxList>
+			</ComboboxContent>
+		</Combobox>
 	);
 }
 

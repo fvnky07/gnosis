@@ -5,6 +5,7 @@ import {
 	type LucideIcon,
 	NotebookPenIcon,
 	SearchIcon,
+	Sparkles,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSettings } from "../lib/settings-store";
@@ -68,7 +69,7 @@ export function TopBar({
 
 			{tb.showFilePath ? (
 				<span
-					className="no-drag-region max-w-[200px] truncate font-mono text-[11px] text-foreground"
+					className="no-drag-region max-w-[200px] truncate text-[11px] text-foreground"
 					title={activeFilePath}
 				>
 					{fileLabel}
@@ -76,15 +77,20 @@ export function TopBar({
 			) : null}
 
 			<div className="absolute left-1/2 flex -translate-x-1/2 items-center gap-1.5">
+				<IconButton
+					onClick={() => onOpenView("agenda")}
+					label="Open AI chat"
+					icon={Sparkles}
+				/>
 				<button
 					type="button"
 					onClick={onOpenPalette}
-					className="no-drag-region inline-flex h-7 w-[clamp(220px,32vw,360px)] items-center gap-2 rounded-md border border-border bg-muted/40 px-2.5 text-muted-foreground text-xs transition-colors hover:bg-muted/70 hover:text-foreground"
+					className="no-drag-region inline-flex h-7 w-[clamp(220px,32vw,360px)] items-center gap-2 rounded-md border border-border bg-muted/40 px-2.5 text-muted-foreground text-sm transition-colors hover:bg-muted/70 hover:text-foreground"
 				>
 					<SearchIcon className="size-3.5 shrink-0 opacity-70" />
 					<span className="flex-1 text-left">Search vault…</span>
-					<kbd className="rounded bg-background px-1.5 font-mono text-muted-foreground text-sm">
-						⌘K
+					<kbd className="rounded bg-background px-1.5 text-muted-foreground text-sm">
+						⌘k
 					</kbd>
 				</button>
 				<IconButton
@@ -101,7 +107,7 @@ export function TopBar({
 
 			<nav
 				aria-label="Status"
-				className="no-drag-region ml-auto inline-flex items-center gap-3 whitespace-nowrap font-mono text-[11px] text-muted-foreground"
+				className="no-drag-region ml-auto inline-flex items-center gap-3 whitespace-nowrap text-muted-foreground text-xs tabular-nums"
 			>
 				{tb.showMode ? <ModePill monochrome /> : null}
 				{tb.showVimRegister ? <span>"{readRegister() || "_"}</span> : null}

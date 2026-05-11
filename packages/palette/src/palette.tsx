@@ -76,6 +76,9 @@ interface CommandPaletteProps {
 	/** Persisted UI knobs from the desktop settings store. Unset values
 	 *  fall back to the previous hard-coded defaults. */
 	appearance?: PaletteAppearance;
+	/** Invoked when the user presses ⌘N inside the palette. Host wires this
+	 *  to its own new-buffer / new-tab flow. */
+	onNewBuffer?(): void;
 }
 
 interface ProviderResult {
@@ -135,6 +138,7 @@ export function CommandPalette({
 	onFrecencyChange,
 	className,
 	appearance,
+	onNewBuffer,
 }: CommandPaletteProps): ReactNode {
 	const position: PalettePosition = appearance?.position ?? "top";
 	const topOffsetVh = appearance?.topOffsetVh ?? 14;
@@ -232,23 +236,34 @@ export function CommandPalette({
 						dispatch({ type: "escape", total: flatItems.length });
 					}
 				}}
+				onKeyDownCapture={(event) => {
+					const mod = event.metaKey || event.ctrlKey;
+					if (mod && !event.shiftKey && event.key.toLowerCase() === "n") {
+						event.preventDefault();
+						event.stopPropagation();
+						onNewBuffer?.();
+						onClose();
+					}
+				}}
 				style={
 					position === "center"
 						? {
 								top: "50%",
-								transform: "translate(-50%, -50%)",
+								translate: "-50% -50%",
+								transform: "none",
 								width: `${widthPx}px`,
 								maxWidth: `${widthPx}px`,
 							}
 						: {
 								top: `${topOffsetVh}vh`,
-								transform: "translate(-50%, 0)",
+								translate: "-50% 0",
+								transform: "none",
 								width: `${widthPx}px`,
 								maxWidth: `${widthPx}px`,
 							}
 				}
 				className={cn(
-					"data-[state=open]:slide-in-from-top-4 left-1/2 gap-0 overflow-hidden rounded-xl border border-border/70 p-0 text-popover-foreground shadow-2xl ring-1 ring-black/5",
+					"data-[state=open]:slide-in-from-top-4 left-1/2 gap-0 overflow-hidden rounded-xl border border-border p-0 text-popover-foreground shadow-2xl ring-1 ring-black/5",
 					backdrop === "blur"
 						? "bg-popover/95 backdrop-blur-xl"
 						: backdrop === "dim"
@@ -272,13 +287,52 @@ export function CommandPalette({
 						}
 						placeholder="Type a command or search…"
 						className="text-[14px]"
+						trailing={
+							state.query.trim().length > 0 && flatItems.length > 0 ? (
+								<span className="select-none text-[10px] text-muted-foreground tabular-nums">
+									{flatItems.length}
+								</span>
+							) : null
+						}
 					/>
 					<CommandList className="max-h-[60vh]">
+						{onNewBuffer ? (
+							<CommandGroup
+								heading={
+									state.query.trim().length > 0 ? undefined : "Quick actions"
+								}
+							>
+								<CommandItem
+									value="__action.new-buffer"
+									onSelect={() => {
+										onNewBuffer();
+										onClose();
+									}}
+									className="gap-2.5 py-2"
+								>
+									<PlusIcon className="size-4 shrink-0 text-muted-foreground" />
+									<div className="flex min-w-0 flex-1 flex-col">
+										<span className="truncate text-[13px] leading-tight">
+											New buffer
+										</span>
+										<span className="truncate text-[11px] text-muted-foreground leading-tight">
+											Open a fresh scratch tab
+										</span>
+									</div>
+									<CommandShortcut className="text-[11px]">⌘N</CommandShortcut>
+								</CommandItem>
+							</CommandGroup>
+						) : null}
 						{flatItems.length === 0 ? (
 							<CommandEmpty>{renderEmpty(state)}</CommandEmpty>
 						) : null}
 						{groupBySection(results, resultLimit).map((group) => (
-							<CommandGroup key={group.key} heading={group.heading}>
+							<CommandGroup
+								key={group.key}
+								heading={
+									state.query.trim().length > 0 ? undefined : group.heading
+								}
+							>
 								{group.entries.map((entry) => (
 									<PaletteRow
 										key={entry.item.id}

@@ -604,6 +604,10 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 				seed={paletteSeed}
 				appearance={paletteAppearance}
 				onClose={() => setOpen(false)}
+				onNewBuffer={() => {
+					const id = `(scratch-${Date.now().toString(36)})`;
+					setActiveBuffer({ id, filePath: id, doc: "" });
+				}}
 			/>
 			<SettingsDialog
 				open={settingsOpen}

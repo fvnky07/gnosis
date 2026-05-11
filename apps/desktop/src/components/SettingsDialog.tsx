@@ -97,7 +97,7 @@ export function SettingsDialog({
 				className={cn(
 					"data-[state=open]:slide-in-from-top-2",
 					"top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
-					"h-[640px] max-h-[calc(100vh-6rem)] w-[min(960px,calc(100vw-3rem))] max-w-none",
+					"h-160 max-h-[calc(100vh-6rem)] w-[80vw] max-w-none sm:max-w-none",
 					"gap-0 overflow-hidden rounded-xl border-border bg-popover p-0 text-popover-foreground shadow-2xl",
 				)}
 			>
@@ -109,7 +109,7 @@ export function SettingsDialog({
 				<Tabs
 					defaultValue="general"
 					orientation="vertical"
-					className="grid h-full grid-cols-[240px_1fr] gap-0"
+					className="grid h-full min-h-0 grid-cols-[240px_1fr] gap-0"
 				>
 					<TabsList
 						variant="line"
@@ -138,44 +138,65 @@ export function SettingsDialog({
 						))}
 					</TabsList>
 
-					<ScrollArea className="h-full">
-						<TabsContent value="general" className="m-0 px-8 py-6 outline-none">
+					<ScrollArea className="h-full min-h-0">
+						<TabsContent
+							value="general"
+							className="m-0 py-6 pr-8 pl-3 outline-none"
+						>
 							<GeneralPane vaultPath={vaultPath} />
 						</TabsContent>
 						<TabsContent
 							value="appearance"
-							className="m-0 px-8 py-6 outline-none"
+							className="m-0 py-6 pr-8 pl-3 outline-none"
 						>
 							<AppearancePane />
 						</TabsContent>
-						<TabsContent value="layout" className="m-0 px-8 py-6 outline-none">
+						<TabsContent
+							value="layout"
+							className="m-0 py-6 pr-8 pl-3 outline-none"
+						>
 							<LayoutPane />
 						</TabsContent>
 						<TabsContent
 							value="interface"
-							className="m-0 px-8 py-6 outline-none"
+							className="m-0 py-6 pr-8 pl-3 outline-none"
 						>
 							<InterfacePane />
 						</TabsContent>
-						<TabsContent value="editor" className="m-0 px-8 py-6 outline-none">
+						<TabsContent
+							value="editor"
+							className="m-0 py-6 pr-8 pl-3 outline-none"
+						>
 							<EditorSettingsPane />
 						</TabsContent>
-						<TabsContent value="vim" className="m-0 px-8 py-6 outline-none">
+						<TabsContent
+							value="vim"
+							className="m-0 py-6 pr-8 pl-3 outline-none"
+						>
 							<VimPane />
 						</TabsContent>
-						<TabsContent value="files" className="m-0 px-8 py-6 outline-none">
+						<TabsContent
+							value="files"
+							className="m-0 py-6 pr-8 pl-3 outline-none"
+						>
 							<FilesPane vaultPath={vaultPath} />
 						</TabsContent>
-						<TabsContent value="hotkeys" className="m-0 px-8 py-6 outline-none">
+						<TabsContent
+							value="hotkeys"
+							className="m-0 py-6 pr-8 pl-3 outline-none"
+						>
 							<HotkeysPane />
 						</TabsContent>
 						<TabsContent
 							value="advanced"
-							className="m-0 px-8 py-6 outline-none"
+							className="m-0 py-6 pr-8 pl-3 outline-none"
 						>
 							<AdvancedPane />
 						</TabsContent>
-						<TabsContent value="about" className="m-0 px-8 py-6 outline-none">
+						<TabsContent
+							value="about"
+							className="m-0 py-6 pr-8 pl-3 outline-none"
+						>
 							<AboutPane />
 						</TabsContent>
 					</ScrollArea>

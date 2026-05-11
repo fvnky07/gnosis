@@ -202,7 +202,7 @@ export const DEFAULT_SETTINGS: SettingsSnapshot = {
 		palette: {
 			position: "top",
 			topOffsetVh: 14,
-			widthPx: 640,
+			widthPx: 480,
 			backdrop: "blur",
 			resultLimit: 50,
 			preserveQueryOnReopen: false,

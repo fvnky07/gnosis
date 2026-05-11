@@ -140,17 +140,19 @@ function buildEditorTheme(opts: EditorOptions): Extension {
 		? fontFamily
 		: `"${fontFamily.replace(/"/g, "")}", ui-monospace, monospace`;
 
+	const caret = "var(--accent-color, var(--ring))";
 	const cursorRule: Record<string, string> = {};
 	if (opts.cursorStyle === "block") {
 		cursorRule.width = "0.6em";
-		cursorRule.background = "var(--foreground)";
+		cursorRule.background = caret;
 		cursorRule.opacity = "0.4";
 	} else if (opts.cursorStyle === "underline") {
 		cursorRule.borderLeft = "0";
-		cursorRule.borderBottom = `${opts.cursorWidthPx}px solid var(--foreground)`;
+		cursorRule.borderBottom = `${opts.cursorWidthPx}px solid ${caret}`;
 		cursorRule.height = "1.2em";
 	} else {
 		cursorRule.borderLeftWidth = `${opts.cursorWidthPx}px`;
+		cursorRule.borderLeftColor = caret;
 	}
 
 	const rulerColors = parseRulers(opts.rulers);
@@ -167,7 +169,7 @@ function buildEditorTheme(opts: EditorOptions): Extension {
 			lineHeight: `${opts.lineHeight}`,
 		},
 		".cm-content": {
-			caretColor: "var(--foreground)",
+			caretColor: "var(--accent-color, var(--ring))",
 		},
 		".cm-cursor, .cm-dropCursor": cursorRule,
 		"&.cm-focused .cm-cursor": opts.cursorBlink
