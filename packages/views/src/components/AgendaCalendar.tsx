@@ -30,6 +30,29 @@ const MODE_TO_VIEW_NAME: Record<AgendaCalendarMode, string> = {
 };
 
 /**
+ * Schedule-X paints event chips from the `calendars` config. Resolves to
+ * concrete colors at render time because Schedule-X writes these into inline
+ * styles via getComputedStyle, which honors CSS custom properties.
+ */
+const CALENDARS = {
+	deadline: {
+		colorName: "deadline",
+		lightColors: {
+			main: "var(--todo-deadline-overdue)",
+			container:
+				"color-mix(in oklch, var(--todo-deadline-overdue) 18%, var(--card))",
+			onContainer: "var(--card-foreground)",
+		},
+		darkColors: {
+			main: "var(--todo-deadline-overdue)",
+			container:
+				"color-mix(in oklch, var(--todo-deadline-overdue) 22%, var(--card))",
+			onContainer: "var(--card-foreground)",
+		},
+	},
+} as const;
+
+/**
  * Schedule-X calendar wrapped in our theming + click-handling. Owns the
  * `useCalendarApp` instance, the events-service plugin (so we can re-feed
  * events without recreating the app), and a MutationObserver that mirrors
@@ -60,20 +83,14 @@ export function AgendaCalendar({
 	const eventsService = useMemo(() => createEventsServicePlugin(), []);
 	const currentTime = useMemo(() => createCurrentTimePlugin(), []);
 
-	// Snapshot events on first render; subsequent block changes flow through
-	// `eventsService.set()` below so the calendar instance is stable.
-	const initialEvents = useMemo(
-		() => viewBlocksToScheduleXEvents(blocks),
-		// biome-ignore lint/correctness/useExhaustiveDependencies: initial only
-		[],
-	);
-
+	// `calendar.setTheme()` below owns the dark <-> light handoff; the calendar
+	// is created with `isDark: false` and the effect immediately syncs it.
 	const calendar = useCalendarApp(
 		{
 			views: [createViewDay(), createViewWeek(), createViewMonthGrid()],
-			events: initialEvents as unknown as CalendarEvent[],
+			events: [],
 			defaultView: MODE_TO_VIEW_NAME[defaultMode],
-			isDark,
+			calendars: CALENDARS,
 			callbacks: {
 				onEventClick: (event) => {
 					const sourceBlock = (event as ScheduleXEvent)._block;

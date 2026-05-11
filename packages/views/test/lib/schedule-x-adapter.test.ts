@@ -55,10 +55,35 @@ describe("parseOrgTimestamp", () => {
 		});
 	});
 
-	it("parses a multi-day span", () => {
+	it("parses a multi-day all-day span", () => {
 		expect(parseOrgTimestamp("<2026-05-10>--<2026-05-12>")).toEqual({
 			startISO: "2026-05-10",
 			endISO: "2026-05-12",
+			allDay: true,
+		});
+	});
+
+	it("parses a timed multi-day span", () => {
+		expect(
+			parseOrgTimestamp("<2026-05-10 Sun 09:00>--<2026-05-12 Tue 17:00>"),
+		).toEqual({
+			startISO: "2026-05-10 09:00",
+			endISO: "2026-05-12 17:00",
+			allDay: false,
+		});
+	});
+
+	it("parses a mixed timed/all-day multi-day span by promoting to timed", () => {
+		const parsed = parseOrgTimestamp("<2026-05-10 09:00>--<2026-05-12>");
+		expect(parsed?.allDay).toBe(false);
+		expect(parsed?.startISO).toBe("2026-05-10 09:00");
+		expect(parsed?.endISO).toBe("2026-05-12 23:59");
+	});
+
+	it("falls back to all-day for a malformed-but-date-containing input", () => {
+		expect(parseOrgTimestamp("<2026-05-10 bogusxx>")).toEqual({
+			startISO: "2026-05-10",
+			endISO: "2026-05-10",
 			allDay: true,
 		});
 	});
@@ -88,14 +113,34 @@ describe("viewBlocksToScheduleXEvents", () => {
 		expect(events.map((e) => e.id)).toEqual(["b"]);
 	});
 
-	it("strips the leading stars from the title", () => {
+	it("strips leading stars and the TODO state from the title", () => {
 		const events = viewBlocksToScheduleXEvents([
 			block("a", {
 				headlineRaw: "*** TODO buy milk",
 				scheduled: "<2026-05-10>",
 			}),
 		]);
-		expect(events[0]?.title).toBe("TODO buy milk");
+		expect(events[0]?.title).toBe("buy milk");
+	});
+
+	it("strips many leading stars without touching trailing TODO-like text", () => {
+		const events = viewBlocksToScheduleXEvents([
+			block("a", {
+				headlineRaw: "***** review TODO list",
+				scheduled: "<2026-05-10>",
+			}),
+		]);
+		expect(events[0]?.title).toBe("review TODO list");
+	});
+
+	it("emits a timed event when DEADLINE-only carries a time range", () => {
+		const events = viewBlocksToScheduleXEvents([
+			block("a", { deadline: "<2026-05-12 10:00-11:00>" }),
+		]);
+		expect(events).toHaveLength(1);
+		expect(events[0]?.calendarId).toBe("deadline");
+		expect(events[0]?.start).toBe("2026-05-12 10:00");
+		expect(events[0]?.end).toBe("2026-05-12 11:00");
 	});
 
 	it("uses SCHEDULED over DEADLINE when both exist", () => {
