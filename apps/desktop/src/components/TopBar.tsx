@@ -52,7 +52,7 @@ export function TopBar({
 		<div
 			role="toolbar"
 			aria-label="Top bar"
-			className={`drag-region relative flex h-[30px] shrink-0 items-center px-2 pb-[2px] ${className ?? ""}`}
+			className={`drag-region relative flex h-10 shrink-0 items-center px-4 pb-0 ${className ?? ""}`}
 		>
 			<div aria-hidden className="w-[72px] shrink-0" />
 
@@ -67,11 +67,11 @@ export function TopBar({
 				<button
 					type="button"
 					onClick={onOpenPalette}
-					className="no-drag-region inline-flex h-7 w-[clamp(220px,32vw,360px)] items-center gap-2 rounded-lg border border-border bg-muted/40 px-2.5 text-muted-foreground text-xs transition-colors hover:bg-muted/70 hover:text-foreground"
+					className="no-drag-region inline-flex h-7 w-[clamp(220px,32vw,360px)] items-center gap-2 rounded-md border border-border bg-muted/40 px-2.5 text-muted-foreground text-xs transition-colors hover:bg-muted/70 hover:text-foreground"
 				>
 					<SearchIcon className="size-3.5 shrink-0 opacity-70" />
 					<span className="flex-1 text-left">Search vault…</span>
-					<kbd className="rounded bg-background/60 px-1 font-mono text-[10px] text-muted-foreground/80">
+					<kbd className="rounded bg-background px-1.5 font-mono text-muted-foreground text-sm">
 						⌘K
 					</kbd>
 				</button>
