@@ -15,6 +15,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BlockDetailsPopover } from "./components/BlockDetailsPopover";
 import { AnimatePresence, PaneShell } from "./components/PaneShell";
+import { ScheduleCaptureDialog } from "./components/ScheduleCaptureDialog";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { TabSwitcher } from "./components/TabSwitcher";
 import { TopBar } from "./components/TopBar";
@@ -184,6 +185,20 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 		setBlocks(next);
 	}, [runtime]);
 
+	const openDailyNote = useCallback(async () => {
+		try {
+			const { filePath, doc, fileCreated } = await runtime.openDailyNote();
+			setActiveBuffer({ id: filePath, filePath, doc });
+			if (fileCreated) await refresh();
+			await logInfo(
+				`daily note opened: ${filePath}${fileCreated ? " (created)" : ""}`,
+			);
+		} catch (err) {
+			const message = err instanceof Error ? err.message : String(err);
+			await logWarn(`Failed to open daily note: ${message}`);
+		}
+	}, [runtime, refresh]);
+
 	// ── vim store ─────────────────────────────────────────────────────────────
 	const setMode = useVimRuntime((s) => s.setMode);
 	const onVimModeChange = useCallback(
@@ -195,6 +210,9 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 
 	// ── settings dialog ───────────────────────────────────────────────────────
 	const [settingsOpen, setSettingsOpen] = useState(false);
+
+	// ── schedule capture dialog ───────────────────────────────────────────────
+	const [scheduleOpen, setScheduleOpen] = useState(false);
 
 	// ── palette engine ────────────────────────────────────────────────────────
 	const toggleVim = useSettings((s) => s.toggleVim);
@@ -222,6 +240,12 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 		onOpenSettings: () => {
 			setSettingsOpen(true);
 		},
+		onOpenSchedule: () => {
+			setScheduleOpen(true);
+		},
+		onOpenDailyNote: () => {
+			void openDailyNote();
+		},
 	});
 
 	// Seed value passed to the palette on the next open. Bumped whenever
@@ -245,6 +269,7 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 		openBlockDetails: () => setBlockDetailsOpen(true),
 		openOutline: () => openPaletteWith("o "),
 		openViewsSubmode: () => openPaletteWith("v "),
+		openSchedule: () => setScheduleOpen(true),
 	});
 
 	useEffect(() => {
@@ -426,6 +451,41 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 		};
 	}, []);
 
+	// Cmd+Shift+S opens the schedule-capture dialog. Listens at the window
+	// level so it fires regardless of whether focus is inside the editor.
+	useEffect(() => {
+		function onKeyDown(event: KeyboardEvent) {
+			const isMac =
+				typeof navigator !== "undefined" && /Mac/i.test(navigator.platform);
+			const summon = isMac ? event.metaKey : event.ctrlKey;
+			if (summon && event.shiftKey && event.key.toLowerCase() === "s") {
+				event.preventDefault();
+				setScheduleOpen((prev) => !prev);
+			}
+		}
+		window.addEventListener("keydown", onKeyDown);
+		return () => {
+			window.removeEventListener("keydown", onKeyDown);
+		};
+	}, []);
+
+	// Cmd+D opens (or creates + opens) today's daily note in the editor.
+	useEffect(() => {
+		function onKeyDown(event: KeyboardEvent) {
+			const isMac =
+				typeof navigator !== "undefined" && /Mac/i.test(navigator.platform);
+			const summon = isMac ? event.metaKey : event.ctrlKey;
+			if (summon && !event.shiftKey && event.key.toLowerCase() === "d") {
+				event.preventDefault();
+				void openDailyNote();
+			}
+		}
+		window.addEventListener("keydown", onKeyDown);
+		return () => {
+			window.removeEventListener("keydown", onKeyDown);
+		};
+	}, [openDailyNote]);
+
 	// ── block details popover ─────────────────────────────────────────────────
 	const [blockDetailsOpen, setBlockDetailsOpen] = useState(false);
 	const selectedBlock = blocks[0] ?? null;
@@ -562,6 +622,7 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 					vaultPath={vaultPath}
 					activeFilePath={activeBuffer.filePath}
 					selection={selection}
+					tabCount={tabs.length}
 					onOpenPalette={() => openPaletteWith()}
 					onOpenView={(id) => openView(id)}
 				/>
@@ -637,6 +698,20 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 				open={settingsOpen}
 				onOpenChange={setSettingsOpen}
 				vaultPath={vaultPath}
+			/>
+			<ScheduleCaptureDialog
+				open={scheduleOpen}
+				onOpenChange={setScheduleOpen}
+				onSubmit={async ({ title, value }) => {
+					const result = await runtime.captureScheduled({
+						title,
+						scheduledAt: { date: value.date, allDay: value.allDay },
+					});
+					await refresh();
+					await logInfo(
+						`schedule: appended "${title}" to ${result.filePath}${result.fileCreated ? " (created)" : ""}`,
+					);
+				}}
 			/>
 			<BlockDetailsPopover
 				block={selectedBlock}

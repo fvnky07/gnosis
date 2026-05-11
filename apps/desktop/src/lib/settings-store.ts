@@ -61,6 +61,7 @@ export interface TopBarSettings {
 	showReadingTime: boolean;
 	showVimRegister: boolean;
 	showClock: boolean;
+	showTabCount: boolean;
 }
 
 export interface TabsSettings {
@@ -193,6 +194,7 @@ export const DEFAULT_SETTINGS: SettingsSnapshot = {
 			showReadingTime: false,
 			showVimRegister: false,
 			showClock: false,
+			showTabCount: true,
 		},
 		tabs: {
 			enabled: false,
