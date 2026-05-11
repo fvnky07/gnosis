@@ -14,10 +14,14 @@
 
 import {
 	type CaptureKind,
+	captureScheduledToVault,
 	captureToVault,
+	dailyNotePath,
 	Indexer,
 	type IndexResult,
 	parseHeadline,
+	type ScheduledCaptureInput,
+	type ScheduledCaptureResult,
 } from "@gnosis/core";
 import type { Block } from "@gnosis/db";
 import type { ViewBlock } from "@gnosis/views";
@@ -33,6 +37,9 @@ export interface DesktopRuntime {
 	indexer: Indexer;
 	coldIndex(): Promise<IndexResult>;
 	capture(kind: CaptureKind, text: string): Promise<{ filePath: string }>;
+	captureScheduled(
+		input: Omit<ScheduledCaptureInput, "todayDailyPath">,
+	): Promise<ScheduledCaptureResult>;
 	loadViewBlocks(): Promise<ViewBlock[]>;
 	searchBlocks(query: string, limit?: number): Promise<FtsRow[]>;
 	listFiles(
@@ -79,6 +86,16 @@ export function createRuntime(vaultPath: string): DesktopRuntime {
 			const result = await captureToVault(vault, kind, text);
 			await indexer.incremental(result.filePath);
 			return { filePath: result.filePath };
+		},
+		async captureScheduled(input) {
+			const now = input.createdAt ?? new Date();
+			const result = await captureScheduledToVault(vault, {
+				...input,
+				createdAt: now,
+				todayDailyPath: dailyNotePath(now),
+			});
+			await indexer.incremental(result.filePath);
+			return result;
 		},
 		async loadViewBlocks() {
 			const rows = await store.getAllBlocks();

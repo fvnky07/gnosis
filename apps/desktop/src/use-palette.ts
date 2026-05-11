@@ -28,6 +28,8 @@ interface PaletteEngineOptions {
 	onToggleWordWrap: () => void;
 	/** Called when the user runs `settings.open`. */
 	onOpenSettings: () => void;
+	/** Called when the user runs `schedule.open`. */
+	onOpenSchedule: () => void;
 }
 
 /**
@@ -45,6 +47,7 @@ export function usePaletteEngine({
 	onToggleLineNumbers,
 	onToggleWordWrap,
 	onOpenSettings,
+	onOpenSchedule,
 }: PaletteEngineOptions) {
 	// biome-ignore lint/correctness/useExhaustiveDependencies: registries created once; option callbacks captured in command closures
 	const registries = useMemo(() => {
@@ -77,6 +80,15 @@ export function usePaletteEngine({
 			shortcut: "⌘,",
 			run: async () => {
 				onOpenSettings();
+			},
+		});
+		commands.register({
+			id: "schedule.open",
+			label: "Schedule…",
+			aliases: ["scheduled", "todo on date", "appointment"],
+			shortcut: "⌘⇧S",
+			run: async () => {
+				onOpenSchedule();
 			},
 		});
 		commands.register({

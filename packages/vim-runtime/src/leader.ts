@@ -6,7 +6,8 @@ export interface LeaderEntry {
 		| { kind: "capture"; preset: "journal" | "task" | "note" }
 		| { kind: "blockDetails" }
 		| { kind: "outline" }
-		| { kind: "view"; submode: true };
+		| { kind: "view"; submode: true }
+		| { kind: "schedule" };
 }
 
 export const LEADER_MAP: LeaderEntry[] = [
@@ -39,6 +40,7 @@ export const LEADER_MAP: LeaderEntry[] = [
 	{ chord: ["o"], label: "outline", action: { kind: "outline" } },
 	{ chord: ["i"], label: "block details", action: { kind: "blockDetails" } },
 	{ chord: ["v"], label: "views", action: { kind: "view", submode: true } },
+	{ chord: ["s"], label: "schedule", action: { kind: "schedule" } },
 ];
 
 export function lookupLeader(chord: string[]): LeaderEntry | undefined {
