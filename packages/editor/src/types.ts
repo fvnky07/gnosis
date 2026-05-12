@@ -75,7 +75,8 @@ export interface BufferProps {
 }
 
 export const DEFAULT_EDITOR_OPTIONS: EditorOptions = {
-	fontFamily: "Commit Mono",
+	fontFamily:
+		'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
 	fontSize: 14,
 	lineHeight: 1.55,
 	letterSpacingPx: 0,
