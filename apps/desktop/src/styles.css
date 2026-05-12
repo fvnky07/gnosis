@@ -143,67 +143,70 @@ html[data-motion="off"] *::after {
 	font-weight: 500;
 }
 
-/* ── Obsidian-style live preview ────────────────────────────────────────
- * Toggled per-editor via the `data-md-live-preview="1"` attribute set by
- * the livePreviewPlugin in `@gnosis/editor`. Source text stays raw
- * markdown; these rules just collapse the syntax tokens and scale the
- * visible elements. Editing on a line momentarily reveals the markup via
- * the plugin's cursor-aware reveal logic. */
-.cm-md-hidden {
+/* ── Obsidian/Logseq-style org live preview ─────────────────────────────
+ * Toggled per-editor via the `data-org-live-preview="1"` attribute set by
+ * the orgLivePreviewPlugin in `@gnosis/editor`. Source text stays raw
+ * org-mode; these rules collapse heading stars + emphasis markers and
+ * scale heading lines. The plugin reveals markup on the cursor's line so
+ * the user can edit it inline. */
+.cm-org-hidden {
 	display: none;
 }
 
-.cm-content[data-md-live-preview="1"] .cm-md-h1 {
+/* Heading line classes are applied via Decoration.line so the entire
+ * line scales, not just the stars-removed slice. */
+.cm-content[data-org-live-preview="1"] .cm-org-h1 {
 	font-size: 1.8em;
 	font-weight: 700;
 	line-height: 1.25;
 }
-.cm-content[data-md-live-preview="1"] .cm-md-h2 {
+.cm-content[data-org-live-preview="1"] .cm-org-h2 {
 	font-size: 1.5em;
 	font-weight: 700;
 	line-height: 1.3;
 }
-.cm-content[data-md-live-preview="1"] .cm-md-h3 {
+.cm-content[data-org-live-preview="1"] .cm-org-h3 {
 	font-size: 1.25em;
 	font-weight: 600;
 }
-.cm-content[data-md-live-preview="1"] .cm-md-h4 {
+.cm-content[data-org-live-preview="1"] .cm-org-h4 {
 	font-size: 1.1em;
 	font-weight: 600;
 }
-.cm-content[data-md-live-preview="1"] .cm-md-h5 {
+.cm-content[data-org-live-preview="1"] .cm-org-h5 {
 	font-size: 1em;
 	font-weight: 600;
 }
-.cm-content[data-md-live-preview="1"] .cm-md-h6 {
+.cm-content[data-org-live-preview="1"] .cm-org-h6 {
 	font-size: 0.92em;
 	font-weight: 600;
 	color: var(--muted-foreground);
 }
 
-.cm-content[data-md-live-preview="1"] .cm-md-link {
-	color: var(--accent-color, oklch(0.6 0.18 250));
+.cm-content[data-org-live-preview="1"] .cm-org-bold {
+	font-weight: 700;
+}
+.cm-content[data-org-live-preview="1"] .cm-org-italic {
+	font-style: italic;
+}
+.cm-content[data-org-live-preview="1"] .cm-org-underline {
 	text-decoration: underline;
 	text-underline-offset: 2px;
 }
-.cm-content[data-md-live-preview="1"] .cm-md-url {
+.cm-content[data-org-live-preview="1"] .cm-org-strike {
+	text-decoration: line-through;
 	color: var(--muted-foreground);
-	font-size: 0.9em;
 }
-.cm-content[data-md-live-preview="1"] .cm-md-inline-code {
+.cm-content[data-org-live-preview="1"] .cm-org-verbatim,
+.cm-content[data-org-live-preview="1"] .cm-org-code {
 	font-family: var(--editor-font-family, var(--font-mono));
 	background: oklch(0.95 0 0 / 0.7);
 	padding: 0 0.25em;
 	border-radius: 3px;
 	font-size: 0.92em;
 }
-.cm-content[data-md-live-preview="1"] .cm-md-quote {
-	color: var(--muted-foreground);
-	font-style: italic;
-}
-.cm-content[data-md-live-preview="1"] .cm-md-list {
-	color: var(--muted-foreground);
-}
-.cm-content[data-md-live-preview="1"] .cm-md-meta {
-	color: var(--muted-foreground);
+.cm-content[data-org-live-preview="1"] .cm-org-link {
+	color: var(--accent-color, oklch(0.6 0.18 250));
+	text-decoration: underline;
+	text-underline-offset: 2px;
 }

@@ -192,7 +192,6 @@
         "@codemirror/state": "^6",
         "@codemirror/view": "^6",
         "@gnosis/core": "workspace:*",
-        "@lezer/highlight": "^1",
         "@replit/codemirror-vim": "^6.3",
       },
       "devDependencies": {

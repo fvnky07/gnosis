@@ -37,10 +37,11 @@ export interface EditorOptions {
 	rulers: string;
 	renderWhitespace: WhitespaceRenderMode;
 	/**
-	 * Obsidian-style live preview: hide markdown syntax tokens
-	 * (`#`, `*`, `_`, link punctuation) when the cursor sits outside the
-	 * element and render headings/emphasis/code visually inline. Source
-	 * stays raw markdown; this is overlay-only.
+	 * Obsidian-style live preview for org buffers: hide heading stars,
+	 * emphasis markers (`*`/`/`/`_`/`=`/`~`/`+`), and link punctuation when
+	 * the cursor is not on the same line. Heading lines scale up via
+	 * `cm-org-hN` classes; emphasis bodies render as bold/italic/code/etc.
+	 * Source stays raw org-mode — overlay only.
 	 */
 	livePreview: boolean;
 }
@@ -110,6 +111,41 @@ export type OrgTokenKind =
 /** A single org token's location in source text. */
 export interface OrgToken {
 	kind: OrgTokenKind;
+	start: number;
+	end: number;
+}
+
+/**
+ * Additional token kinds emitted only by {@link findOrgProseTokens} to
+ * power live preview. Kept separate from {@link OrgTokenKind} so the
+ * always-on `gnosisOrgExtras` highlighter doesn't accidentally render
+ * them (it would either need extra branches or duplicate class wiring).
+ */
+export type OrgProseTokenKind =
+	| "heading-mark-1"
+	| "heading-mark-2"
+	| "heading-mark-3"
+	| "heading-mark-4"
+	| "heading-mark-5"
+	| "heading-mark-6"
+	| "emphasis-bold-mark"
+	| "emphasis-bold-body"
+	| "emphasis-italic-mark"
+	| "emphasis-italic-body"
+	| "emphasis-underline-mark"
+	| "emphasis-underline-body"
+	| "emphasis-verbatim-mark"
+	| "emphasis-verbatim-body"
+	| "emphasis-code-mark"
+	| "emphasis-code-body"
+	| "emphasis-strike-mark"
+	| "emphasis-strike-body"
+	| "link-bracket"
+	| "link-url"
+	| "link-label";
+
+export interface OrgProseToken {
+	kind: OrgProseTokenKind;
 	start: number;
 	end: number;
 }
