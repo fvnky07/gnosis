@@ -71,20 +71,20 @@ const ROOT_ENTRIES: RootEntry[] = [
 		keywords: ["agenda", "today"],
 	},
 	{
-		id: "root.view.agenda-week",
-		label: "Open Agenda · Week",
-		detail: "Seven-day time grid",
-		section: "Views",
-		openView: "agenda-week",
-		keywords: ["agenda", "week"],
-	},
-	{
 		id: "root.view.agenda-month",
 		label: "Open Agenda · Month",
 		detail: "Six-week month grid",
 		section: "Views",
 		openView: "agenda-month",
 		keywords: ["agenda", "calendar"],
+	},
+	{
+		id: "root.view.agenda-year",
+		label: "Open Agenda · Year",
+		detail: "12-month overview",
+		section: "Views",
+		openView: "agenda-year",
+		keywords: ["agenda", "year"],
 	},
 	{
 		id: "root.view.todos",

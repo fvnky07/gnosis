@@ -14,12 +14,7 @@
 	},
 	"dependencies": {
 		"@gnosis/db": "workspace:*",
-		"@gnosis/editor": "workspace:*",
-		"@schedule-x/calendar": "^4.5.0",
-		"@schedule-x/current-time": "^4.5.0",
-		"@schedule-x/events-service": "^4.5.0",
-		"@schedule-x/react": "^4.1.0",
-		"@schedule-x/theme-default": "^4.5.0"
+		"@gnosis/editor": "workspace:*"
 	},
 	"peerDependencies": {
 		"react": ">=19"

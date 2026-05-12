@@ -61,7 +61,7 @@ Each item below is a GitHub issue. Prefix groups: V (vault), P (parser), E (edit
 ### vault & indexer
 - **V1 — Multi-vault / vault switcher.** Currently switching vaults requires restart; ergonomics can improve.
 - **V2 — File watcher.** Reflect external edits live via `notify-rs` or `chokidar`. Cross-platform correctness is the main cost.
-- **V3 — Drag-rescheduling in agenda.** Need round-trip-safe edits to scheduled timestamps when dragging chips. The agenda itself moved to Schedule-X in [issue #15](https://github.com/fvnky07/gnosis/issues/15); Schedule-X's drag plugin is paid, so the follow-up is either (a) buy a license or (b) build custom drag handlers on the free chrome and feed `eventsService.update()` plus a `@gnosis/core` SCHEDULED-rewrite splice. File as a separate issue when this work starts.
+- **V3 — Drag-rescheduling in agenda.** Need round-trip-safe edits to scheduled timestamps when dragging chips.
 - **V4 — Saved queries / virtual views.** Let the user save palette searches as named views in the right sidebar.
 - **V5 — Graph view, backlinks panel, canvas mode.**
 - **V6 — Conflict UI for concurrent external edits.** Only relevant after V2.

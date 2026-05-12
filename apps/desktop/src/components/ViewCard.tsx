@@ -2,7 +2,6 @@ import {
 	type AgendaMode,
 	AgendaView,
 	JournalView,
-	type OnOpenBlock,
 	TodosView,
 	type ViewBlock,
 } from "@gnosis/views";
@@ -17,15 +16,14 @@ import {
 export type ViewKind =
 	| "journal"
 	| "agenda-day"
-	| "agenda-week"
 	| "agenda-month"
+	| "agenda-year"
 	| "todos";
 
 interface ViewCardProps {
 	blocks: ViewBlock[];
 	view: ViewKind;
 	onClose(): void;
-	onOpenBlock?: OnOpenBlock;
 	className?: string;
 	style?: import("react").CSSProperties;
 }
@@ -40,15 +38,15 @@ const VIEW_META: Record<
 		icon: CalendarRangeIcon,
 		agendaMode: "day",
 	},
-	"agenda-week": {
-		label: "Agenda · Week",
-		icon: CalendarRangeIcon,
-		agendaMode: "week",
-	},
 	"agenda-month": {
 		label: "Agenda · Month",
 		icon: CalendarRangeIcon,
 		agendaMode: "month",
+	},
+	"agenda-year": {
+		label: "Agenda · Year",
+		icon: CalendarRangeIcon,
+		agendaMode: "year",
 	},
 	todos: { label: "Todos", icon: SquareCheckBigIcon },
 };
@@ -61,7 +59,6 @@ export function ViewCard({
 	blocks,
 	view,
 	onClose,
-	onOpenBlock,
 	className,
 	style,
 }: ViewCardProps) {
@@ -89,11 +86,7 @@ export function ViewCard({
 			<div className="min-h-0 flex-1 overflow-auto">
 				{view === "journal" ? <JournalView blocks={blocks} /> : null}
 				{meta.agendaMode ? (
-					<AgendaView
-						blocks={blocks}
-						defaultMode={meta.agendaMode}
-						onOpenBlock={onOpenBlock}
-					/>
+					<AgendaView blocks={blocks} defaultMode={meta.agendaMode} />
 				) : null}
 				{view === "todos" ? <TodosView blocks={blocks} /> : null}
 			</div>

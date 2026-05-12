@@ -72,8 +72,8 @@ export type PaletteViewId =
 	| "journal"
 	| "agenda"
 	| "agenda-day"
-	| "agenda-week"
 	| "agenda-month"
+	| "agenda-year"
 	| "todos";
 
 export interface PaletteExecutors {

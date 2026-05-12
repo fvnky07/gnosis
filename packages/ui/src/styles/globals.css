@@ -313,38 +313,3 @@
 		@apply font-sans;
 	}
 }
-
-/*
- * Schedule-X (`packages/views/src/components/AgendaCalendar.tsx`) ships its
- * own bundled stylesheet imported from `apps/desktop/src/styles.css`. Map
- * the documented `--sx-color-*` variables onto base-lyra semantic tokens so
- * the calendar renders against our surface/border/primary palette without
- * touching Schedule-X internals. Scope to `.sx-react-calendar-wrapper` to
- * prevent any global bleed.
- */
-.sx-react-calendar-wrapper {
-	--sx-color-background: var(--card);
-	--sx-color-on-background: var(--card-foreground);
-	--sx-color-surface: var(--background);
-	--sx-color-on-surface: var(--foreground);
-	/* Elevation tiers: -low for grid rows, neutral container for week-header
-	 * strip, -high for hover/selection. Keeping a visible step between them
-	 * preserves Schedule-X's intended visual hierarchy. */
-	--sx-color-surface-container-low: var(--background);
-	--sx-color-surface-container: var(--muted);
-	--sx-color-surface-container-high: var(--accent);
-	--sx-color-on-surface-variant: var(--muted-foreground);
-	--sx-color-outline: var(--border);
-	--sx-color-outline-variant: var(--border);
-	--sx-color-primary: var(--primary);
-	--sx-color-on-primary: var(--primary-foreground);
-	--sx-color-primary-container: var(--accent);
-	--sx-color-on-primary-container: var(--accent-foreground);
-	--sx-color-secondary-container: var(--muted);
-	--sx-color-on-secondary-container: var(--muted-foreground);
-	--sx-color-tertiary-container: var(--secondary);
-	--sx-color-on-tertiary-container: var(--secondary-foreground);
-	--sx-color-error: var(--destructive);
-	--sx-internal-color-text: var(--foreground);
-	--sx-color-current-time-line: var(--agenda-now-line);
-}

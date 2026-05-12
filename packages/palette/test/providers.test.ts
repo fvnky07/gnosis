@@ -120,7 +120,7 @@ describe("viewProvider", () => {
 		expect(items.map((i) => i.meta?.viewId).sort()).toEqual([
 			"agenda-day",
 			"agenda-month",
-			"agenda-week",
+			"agenda-year",
 			"journal",
 			"todos",
 		]);
