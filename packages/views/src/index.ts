@@ -1,5 +1,6 @@
 export const PACKAGE = "@gnosis/views";
 
+export { AgendaCalendar } from "./components/AgendaCalendar";
 export { AgendaView } from "./components/AgendaView";
 export { EmptyState } from "./components/EmptyState";
 export { JournalView } from "./components/JournalView";
@@ -20,6 +21,11 @@ export {
 	relativeDate,
 	startOfDay,
 } from "./lib/relative-date";
+export {
+	parseOrgTimestamp,
+	type ScheduleXEvent,
+	viewBlocksToScheduleXEvents,
+} from "./lib/schedule-x-adapter";
 export {
 	buildKanbanColumns,
 	classifyKanban,
