@@ -18,6 +18,7 @@ import {
 	Sparkles,
 } from "lucide-react";
 import { Fragment, useEffect, useState } from "react";
+import { useSelectionStore } from "../lib/selection-store";
 import { useSettings } from "../lib/settings-store";
 
 interface TopBarProps {
@@ -26,9 +27,6 @@ interface TopBarProps {
 	/** Absolute path of the active buffer. Pseudo-paths starting with `(`
 	 * (e.g. `(welcome)`) are surfaced as `welcome.org`. */
 	activeFilePath: string;
-	/** Latest selection info from the editor. Null until the editor first
-	 * mounts and emits. */
-	selection: SelectionInfo | null;
 	/** Number of open buffers; rendered at the far right of the status. */
 	tabCount: number;
 	/** Click handler for the centered search pill. */
@@ -63,13 +61,13 @@ const READING_WPM = 250;
 export function TopBar({
 	vaultPath,
 	activeFilePath,
-	selection,
 	tabCount,
 	onOpenPalette,
 	onOpenView,
 	className,
 }: TopBarProps) {
 	const tb = useSettings((s) => s.interface.topBar);
+	const selection = useSelectionStore((s) => s.selection);
 	const clock = useClock(tb.showClock);
 	return (
 		<div
