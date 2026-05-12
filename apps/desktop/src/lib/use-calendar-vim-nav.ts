@@ -17,7 +17,16 @@
  */
 
 import { useEffect } from "react";
-import type { DateTimePickerValue } from "../components/DateTimePicker24h";
+
+/**
+ * Minimal value shape consumed by the vim-nav hook. Defined here (rather
+ * than imported from a sibling component) so the hook stays usable
+ * regardless of which picker UI the dialog ends up rendering.
+ */
+export interface CalendarVimNavValue {
+	date: Date;
+	allDay: boolean;
+}
 
 export interface CalendarVimNavOptions {
 	/**
@@ -25,8 +34,8 @@ export interface CalendarVimNavOptions {
 	 * chord only fires while the dialog is focused. Falsy values disable.
 	 */
 	target: HTMLElement | null;
-	value: DateTimePickerValue | null;
-	onChange: (next: DateTimePickerValue) => void;
+	value: CalendarVimNavValue | null;
+	onChange: (next: CalendarVimNavValue) => void;
 	/** Set false to suspend the hook (e.g. dialog closed). */
 	enabled?: boolean;
 }
