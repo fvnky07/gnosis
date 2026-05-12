@@ -1,10 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	buildOrgTimestamp,
 	captureScheduledToVault,
 	composeScheduledCapture,
 	MemoryVault,
 } from "../../src";
+import { _resetCrossDayWarn } from "../../src/capture/schedule";
 
 describe("buildOrgTimestamp", () => {
 	it("emits an active date-only timestamp by default", () => {
@@ -164,5 +165,115 @@ describe("captureScheduledToVault", () => {
 		const written = await vault.read("daily/2026-05-20.org");
 		expect(written).toContain("SCHEDULED: <2026-05-20 Wed>");
 		expect(written).not.toMatch(/SCHEDULED: <2026-05-20 Wed \d{2}:\d{2}>/);
+	});
+});
+
+describe("composeScheduledCapture (endDate)", () => {
+	const createdAt = new Date(2026, 4, 11, 9, 24);
+
+	beforeEach(() => {
+		_resetCrossDayWarn();
+	});
+
+	it("emits a HH:MM-HH:MM range when endDate falls on the same day", () => {
+		const r = composeScheduledCapture({
+			title: "Standup",
+			scheduledAt: {
+				date: new Date(2026, 4, 15, 9, 0),
+				endDate: new Date(2026, 4, 15, 10, 0),
+				allDay: false,
+			},
+			createdAt,
+		});
+		expect(r.block.scheduled?.raw).toBe("<2026-05-15 Fri 09:00-10:00>");
+		expect(r.block.scheduled?.endTime).toBe("10:00");
+	});
+
+	it("ignores endDate when allDay is true", () => {
+		const r = composeScheduledCapture({
+			title: "Conference",
+			scheduledAt: {
+				date: new Date(2026, 4, 15),
+				endDate: new Date(2026, 4, 15, 23, 59),
+				allDay: true,
+			},
+			createdAt,
+		});
+		expect(r.block.scheduled?.raw).toBe("<2026-05-15 Fri>");
+		expect(r.block.scheduled?.endTime).toBeUndefined();
+	});
+
+	it("drops a cross-day endDate and warns once", () => {
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+		try {
+			const a = composeScheduledCapture({
+				title: "Trip",
+				scheduledAt: {
+					date: new Date(2026, 4, 15, 9, 0),
+					endDate: new Date(2026, 4, 16, 9, 0),
+					allDay: false,
+				},
+				createdAt,
+			});
+			const b = composeScheduledCapture({
+				title: "Other trip",
+				scheduledAt: {
+					date: new Date(2026, 4, 18, 9, 0),
+					endDate: new Date(2026, 4, 19, 9, 0),
+					allDay: false,
+				},
+				createdAt,
+			});
+			expect(a.block.scheduled?.raw).toBe("<2026-05-15 Fri 09:00>");
+			expect(a.block.scheduled?.endTime).toBeUndefined();
+			expect(b.block.scheduled?.raw).toBe("<2026-05-18 Mon 09:00>");
+			expect(warn).toHaveBeenCalledTimes(1);
+			expect(warn).toHaveBeenCalledWith(
+				expect.stringContaining("cross-day endDate"),
+			);
+		} finally {
+			warn.mockRestore();
+		}
+	});
+
+	it("treats endDate=null the same as omitted", () => {
+		const r = composeScheduledCapture({
+			title: "Single",
+			scheduledAt: {
+				date: new Date(2026, 4, 15, 9, 0),
+				endDate: null,
+				allDay: false,
+			},
+			createdAt,
+		});
+		expect(r.block.scheduled?.raw).toBe("<2026-05-15 Fri 09:00>");
+		expect(r.block.scheduled?.endTime).toBeUndefined();
+	});
+});
+
+describe("captureScheduledToVault (endDate)", () => {
+	const createdAt = new Date(2026, 4, 11, 9, 24);
+
+	beforeEach(() => {
+		_resetCrossDayWarn();
+	});
+
+	afterEach(() => {
+		_resetCrossDayWarn();
+	});
+
+	it("writes a range SCHEDULED line when endDate is supplied same day", async () => {
+		const vault = new MemoryVault();
+		await captureScheduledToVault(vault, {
+			title: "Standup",
+			scheduledAt: {
+				date: new Date(2026, 4, 15, 9, 0),
+				endDate: new Date(2026, 4, 15, 10, 0),
+				allDay: false,
+			},
+			createdAt,
+		});
+		const written = await vault.read("daily/2026-05-15.org");
+		expect(written).toContain("SCHEDULED: <2026-05-15 Fri 09:00-10:00>");
 	});
 });

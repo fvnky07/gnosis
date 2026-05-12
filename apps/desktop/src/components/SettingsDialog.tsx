@@ -445,6 +445,7 @@ function AppearancePane(): ReactNode {
 function LayoutPane(): ReactNode {
 	const l = useSettings((s) => s.layout);
 	const update = useSettings((s) => s.updateLayout);
+	const resetPaneLayout = useSettings((s) => s.resetPaneLayout);
 	return (
 		<>
 			<PaneHeading>Layout</PaneHeading>
@@ -561,6 +562,27 @@ function LayoutPane(): ReactNode {
 						]}
 						onChange={(viewSidebarPosition) => update({ viewSidebarPosition })}
 					/>
+				}
+			/>
+			<SettingRow
+				label="Pane split layout"
+				description="Drag the dividers between panes to resize. Double-click a divider to reset that split. ⌘⇧H / ⌘⇧L resize horizontally, ⌘⇧K / ⌘⇧J vertically."
+				control={
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={() => {
+							if (
+								window.confirm(
+									"Reset the workspace layout? Open view panes will close and pane sizes return to defaults.",
+								)
+							) {
+								resetPaneLayout();
+							}
+						}}
+					>
+						Reset pane layout
+					</Button>
 				}
 			/>
 			<SectionResetLink section="layout" />

@@ -15,8 +15,9 @@ export type TodoState = "TODO" | "DONE";
 export type Priority = "A" | "B" | "C";
 
 /**
- * An org timestamp, e.g. `<2026-05-07 Thu 09:00>` or `[2026-05-07 Thu]`.
- * The `raw` field is preserved for byte-exact round-trip.
+ * An org timestamp, e.g. `<2026-05-07 Thu 09:00>`, `<2026-05-07 Thu 09:00-10:30>`,
+ * or `[2026-05-07 Thu]`. The `raw` field is preserved for byte-exact
+ * round-trip — splice emitters drop it back in unchanged.
  */
 export interface OrgTimestamp {
 	/** Original string including delimiters, for round-trip splices. */
@@ -25,8 +26,14 @@ export interface OrgTimestamp {
 	active: boolean;
 	/** ISO date `YYYY-MM-DD`. */
 	date: string;
-	/** Optional `HH:MM` clock time. */
+	/** Optional `HH:MM` clock time (start time when `endTime` is set). */
 	time?: string;
+	/**
+	 * Optional `HH:MM` end-of-range time. Only meaningful when `time` is also
+	 * present and the range is single-day; multi-day spans use the
+	 * `<start>--<end>` form which the parser does not yet emit.
+	 */
+	endTime?: string;
 }
 
 /**

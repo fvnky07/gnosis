@@ -15,54 +15,37 @@
  */
 
 import { emitAppendBlock } from "../parser/emit";
-import type { NewBlock, OrgTimestamp } from "../parser/types";
+import { buildOrgTimestamp } from "../parser/timestamp";
+import type { NewBlock } from "../parser/types";
 import type { Vault } from "../vault";
 import { VaultNotFoundError } from "../vault";
 import { dailyNotePath } from "./index";
-
-const WEEKDAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 function pad2(n: number): string {
 	return String(n).padStart(2, "0");
 }
 
-/**
- * Format a JS `Date` as an org timestamp. When `withTime` is true the
- * `HH:MM` segment is included. `active = true` produces `<...>` (the
- * agenda-visible variant); `false` produces `[...]` (used for the
- * `:CREATED:` property so it doesn't pollute the agenda).
- */
-export function buildOrgTimestamp(
-	date: Date,
-	options: { withTime?: boolean; active?: boolean } = {},
-): OrgTimestamp {
-	const { withTime = false, active = true } = options;
-	const yyyy = date.getFullYear();
-	const mm = pad2(date.getMonth() + 1);
-	const dd = pad2(date.getDate());
-	const wk = WEEKDAY_NAMES[date.getDay()] ?? "Sun";
-	const open = active ? "<" : "[";
-	const close = active ? ">" : "]";
-	const dateStr = `${yyyy}-${mm}-${dd}`;
-	if (!withTime) {
-		return { raw: `${open}${dateStr} ${wk}${close}`, active, date: dateStr };
-	}
-	const hh = pad2(date.getHours());
-	const mi = pad2(date.getMinutes());
-	const time = `${hh}:${mi}`;
-	return {
-		raw: `${open}${dateStr} ${wk} ${time}${close}`,
-		active,
-		date: dateStr,
-		time,
-	};
+function isSameLocalDay(a: Date, b: Date): boolean {
+	return (
+		a.getFullYear() === b.getFullYear() &&
+		a.getMonth() === b.getMonth() &&
+		a.getDate() === b.getDate()
+	);
 }
+
+let warnedCrossDayEnd = false;
 
 export interface ScheduledCaptureInput {
 	/** Heading text (without leading TODO keyword or stars). */
 	title: string;
-	/** Picked moment + whether the user opted into a time component. */
-	scheduledAt: { date: Date; allDay: boolean };
+	/**
+	 * Picked moment + whether the user opted into a time component, plus
+	 * an optional end-of-range time. `endDate` only contributes a time
+	 * range when it falls on the same calendar day as `date` and `allDay`
+	 * is false — cross-day spans (`<...>--<...>`) are deferred and the
+	 * mismatched `endDate` is silently dropped (with a one-shot warn).
+	 */
+	scheduledAt: { date: Date; endDate?: Date | null; allDay: boolean };
 	/** Wall-clock now, for the `:CREATED:` property. */
 	createdAt?: Date;
 	/**
@@ -106,9 +89,26 @@ export function composeScheduledCapture(
 		properties.CREATED_FROM = input.todayDailyPath;
 	}
 
+	const endDate = input.scheduledAt.endDate ?? undefined;
+	let endTime: string | undefined;
+	if (endDate && !input.scheduledAt.allDay) {
+		if (isSameLocalDay(input.scheduledAt.date, endDate)) {
+			endTime = `${pad2(endDate.getHours())}:${pad2(endDate.getMinutes())}`;
+		} else if (!warnedCrossDayEnd) {
+			warnedCrossDayEnd = true;
+			// Multi-day spans require the `<start>--<end>` org form. The
+			// builder + emitter don't ship that yet, so the end is dropped
+			// and a single-shot warn is logged for visibility.
+			console.warn(
+				"[capture/schedule] cross-day endDate dropped — multi-day SCHEDULED ranges are not yet supported",
+			);
+		}
+	}
+
 	const scheduled = buildOrgTimestamp(input.scheduledAt.date, {
 		withTime: !input.scheduledAt.allDay,
 		active: true,
+		endTime,
 	});
 
 	const block: NewBlock = {
@@ -158,4 +158,13 @@ export async function captureScheduledToVault(
 	const updated = emitAppendBlock(original, block);
 	await vault.write(filePath, updated);
 	return { filePath, fileCreated };
+}
+
+/**
+ * Internal test hook: resets the one-shot cross-day warn so unit tests can
+ * assert that the warning fires exactly once per process. Not exported
+ * through the package barrel — only used by `test/capture/schedule.test.ts`.
+ */
+export function _resetCrossDayWarn(): void {
+	warnedCrossDayEnd = false;
 }

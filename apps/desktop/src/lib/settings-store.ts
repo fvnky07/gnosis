@@ -1,5 +1,17 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { ViewKind } from "../components/ViewCard";
+import {
+	addViewToRoot,
+	defaultPaneTree,
+	type PaneSplit,
+	removeAllViews,
+	removeLeaf,
+	removeViewFromTree,
+	setSplitSizes as setSplitSizesInTree,
+	splitLeafVertically as splitLeafVerticallyInTree,
+	validateTree,
+} from "./pane-layout";
 
 /**
  * Persisted settings for the desktop shell. The store is namespaced by group
@@ -147,6 +159,10 @@ export interface AdvancedSettings {
 	experimental: Record<string, boolean>;
 }
 
+export interface PaneLayoutSettings {
+	tree: PaneSplit;
+}
+
 export interface SettingsSnapshot {
 	appearance: AppearanceSettings;
 	layout: LayoutSettings;
@@ -156,6 +172,7 @@ export interface SettingsSnapshot {
 	org: OrgSettings;
 	files: FilesSettings;
 	advanced: AdvancedSettings;
+	paneLayout: PaneLayoutSettings;
 }
 
 export type SettingsSection = keyof SettingsSnapshot;
@@ -267,6 +284,9 @@ export const DEFAULT_SETTINGS: SettingsSnapshot = {
 		developerMode: false,
 		experimental: {},
 	},
+	paneLayout: {
+		tree: defaultPaneTree(),
+	},
 };
 
 interface SettingsActions {
@@ -286,6 +306,13 @@ interface SettingsActions {
 	toggleVim(): void;
 	toggleTopBar(): void;
 	toggleTheme(): void;
+	openViewPane(view: ViewKind): void;
+	closeViewPane(view: ViewKind): void;
+	closeAllViewPanes(): void;
+	closeLeaf(leafId: string): void;
+	splitLeafVertically(leafId: string, newView: ViewKind): void;
+	setSplitSizes(splitId: string, sizes: number[]): void;
+	resetPaneLayout(): void;
 	resetSection(section: SettingsSection): void;
 	resetAll(): void;
 	exportJson(): string;
@@ -419,6 +446,37 @@ export const useSettings = create<SettingsState>()(
 			updateAdvanced: (patch) =>
 				set((s) => ({ advanced: shallowMerge(s.advanced, patch) })),
 
+			openViewPane: (view) =>
+				set((s) => ({
+					paneLayout: { tree: addViewToRoot(s.paneLayout.tree, view) },
+				})),
+			closeViewPane: (view) =>
+				set((s) => ({
+					paneLayout: { tree: removeViewFromTree(s.paneLayout.tree, view) },
+				})),
+			closeAllViewPanes: () =>
+				set((s) => ({
+					paneLayout: { tree: removeAllViews(s.paneLayout.tree) },
+				})),
+			closeLeaf: (leafId) =>
+				set((s) => ({
+					paneLayout: { tree: removeLeaf(s.paneLayout.tree, leafId) },
+				})),
+			splitLeafVertically: (leafId, newView) =>
+				set((s) => ({
+					paneLayout: {
+						tree: splitLeafVerticallyInTree(s.paneLayout.tree, leafId, newView),
+					},
+				})),
+			setSplitSizes: (splitId, sizes) =>
+				set((s) => ({
+					paneLayout: {
+						tree: setSplitSizesInTree(s.paneLayout.tree, splitId, sizes),
+					},
+				})),
+			resetPaneLayout: () =>
+				set(() => ({ paneLayout: { tree: defaultPaneTree() } })),
+
 			toggleVim: () =>
 				set((s) => ({ vim: { ...s.vim, enabled: !s.vim.enabled } })),
 			toggleTopBar: () =>
@@ -472,7 +530,7 @@ export const useSettings = create<SettingsState>()(
 		}),
 		{
 			name: "gnosis-settings",
-			version: 2,
+			version: 3,
 			migrate: (persistedState, fromVersion) => {
 				// v1 carried { noteWidthPct, statusBarVisible, vimEnabled } at the root.
 				// statusBarVisible maps to the new topBar.visible since the status row
@@ -509,6 +567,16 @@ export const useSettings = create<SettingsState>()(
 						},
 					};
 				}
+				// v2 → v3 seeds the paneLayout slice. Older snapshots have no
+				// tree, so start everyone on the default (editor-only) layout.
+				if (fromVersion < 3) {
+					const v2 = (persistedState ?? {}) as Partial<SettingsSnapshot>;
+					return {
+						...DEFAULT_SETTINGS,
+						...v2,
+						paneLayout: { tree: defaultPaneTree() },
+					};
+				}
 				return persistedState as SettingsSnapshot;
 			},
 			partialize: (state) => pickSnapshot(state),
@@ -537,6 +605,7 @@ function pickSnapshot(state: SettingsSnapshot): SettingsSnapshot {
 		org: state.org,
 		files: state.files,
 		advanced: state.advanced,
+		paneLayout: state.paneLayout,
 	};
 }
 
@@ -565,6 +634,9 @@ function mergeSnapshot(
 		org: { ...base.org, ...(patch.org ?? {}) },
 		files: { ...base.files, ...(patch.files ?? {}) },
 		advanced: { ...base.advanced, ...(patch.advanced ?? {}) },
+		paneLayout: {
+			tree: validateTree(patch.paneLayout?.tree ?? base.paneLayout.tree),
+		},
 	};
 }
 

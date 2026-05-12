@@ -17,8 +17,8 @@ import type { NewBlock, OrgTimestamp } from "../parser/types";
 import type { Vault } from "../vault";
 import { VaultNotFoundError } from "../vault";
 
+export { buildOrgTimestamp } from "../parser/timestamp";
 export {
-	buildOrgTimestamp,
 	captureScheduledToVault,
 	composeScheduledCapture,
 	type ScheduledCaptureBlock,

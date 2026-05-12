@@ -14,7 +14,8 @@ import {
 } from "@gnosis/vim-runtime";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BlockDetailsPopover } from "./components/BlockDetailsPopover";
-import { AnimatePresence, PaneShell } from "./components/PaneShell";
+import { PaneShell } from "./components/PaneShell";
+import { PaneTree, type PaneTreeHandle } from "./components/PaneTree";
 import { ScheduleCaptureDialog } from "./components/ScheduleCaptureDialog";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { TabSwitcher } from "./components/TabSwitcher";
@@ -23,11 +24,21 @@ import { ViewCard, type ViewKind } from "./components/ViewCard";
 import { EditorPane } from "./EditorPane";
 import { openDb, readSchemaVersion } from "./lib/db";
 import { error as logError, info as logInfo, warn as logWarn } from "./lib/log";
+import {
+	EDITOR_LEAF_ID,
+	equalSizes,
+	findInnermostSplit,
+	type PaneLeaf,
+	redistributeSizes,
+} from "./lib/pane-layout";
 import { createRuntime, type DesktopRuntime } from "./lib/runtime";
 import { useApplySettings } from "./lib/settings-apply";
 import { useSettings } from "./lib/settings-store";
 import { ensureVaultPath } from "./lib/vault";
 import { usePaletteEngine } from "./use-palette";
+
+const RESIZE_MIN_PCT = 15;
+const RESIZE_STEP_PCT = 5;
 
 type BootstrapStatus =
 	| { kind: "starting" }
@@ -156,22 +167,27 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 	}>({ id: "welcome", filePath: "(welcome)", doc: WELCOME_ORG });
 	const [selection, setSelection] = useState<SelectionInfo | null>(null);
 
-	// Multi-pane workspace: each open view renders as a peer pane in the
-	// main flex row alongside the editor. Duplicate kinds are ignored so the
-	// palette opening "agenda-day" twice doesn't stack panes.
-	const [openPanes, setOpenPanes] = useState<ViewKind[]>([]);
+	// Multi-pane workspace: the layout lives in the Zustand store as a tree of
+	// horizontal/vertical splits so widths persist across restarts and so
+	// vertical splits inside any pane are addressable. The editor leaf is
+	// always present; opening a view appends to the root horizontal split.
+	const paneTree = useSettings((s) => s.paneLayout.tree);
+	const openViewPane = useSettings((s) => s.openViewPane);
+	const closeAllViewPanes = useSettings((s) => s.closeAllViewPanes);
+	const closeLeaf = useSettings((s) => s.closeLeaf);
+	const setSplitSizes = useSettings((s) => s.setSplitSizes);
+	const paneTreeRef = useRef<PaneTreeHandle | null>(null);
 
-	const openPane = useCallback((kind: ViewKind) => {
-		setOpenPanes((cur) => (cur.includes(kind) ? cur : [...cur, kind]));
-	}, []);
-
-	const closePane = useCallback((kind: ViewKind) => {
-		setOpenPanes((cur) => cur.filter((k) => k !== kind));
-	}, []);
+	const openPane = useCallback(
+		(kind: ViewKind) => {
+			openViewPane(kind);
+		},
+		[openViewPane],
+	);
 
 	const closeAllPanes = useCallback(() => {
-		setOpenPanes([]);
-	}, []);
+		closeAllViewPanes();
+	}, [closeAllViewPanes]);
 
 	const openView = useCallback(
 		(id: string) => {
@@ -179,6 +195,14 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 		},
 		[openPane],
 	);
+
+	const focusedLeafId = useCallback((): string => {
+		if (typeof document === "undefined") return EDITOR_LEAF_ID;
+		const el = document.activeElement;
+		if (!el) return EDITOR_LEAF_ID;
+		const within = (el as Element).closest?.("[data-pane-id]");
+		return within?.getAttribute("data-pane-id") ?? EDITOR_LEAF_ID;
+	}, []);
 
 	const refresh = useCallback(async () => {
 		const next = await runtime.loadViewBlocks();
@@ -433,6 +457,48 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 		};
 	}, [closeAllPanes]);
 
+	// Cmd+Shift+H/J/K/L resize the focused leaf's nearest matching split by
+	// ±5 % (vim-style: H/L horizontal, K/J vertical). Donor sibling is the
+	// next-index neighbour; falls back to previous if the focused leaf is the
+	// last child. Bounded by RESIZE_MIN_PCT.
+	useEffect(() => {
+		function onKeyDown(event: KeyboardEvent) {
+			const isMac =
+				typeof navigator !== "undefined" && /Mac/i.test(navigator.platform);
+			const mod = isMac ? event.metaKey : event.ctrlKey;
+			if (!mod || !event.shiftKey) return;
+			const key = event.key.toLowerCase();
+			if (key !== "h" && key !== "j" && key !== "k" && key !== "l") return;
+
+			const tree = useSettings.getState().paneLayout.tree;
+			const focused = focusedLeafId();
+			const direction: "horizontal" | "vertical" =
+				key === "h" || key === "l" ? "horizontal" : "vertical";
+			const hit = findInnermostSplit(tree, focused, direction);
+			if (!hit) return;
+			event.preventDefault();
+			const delta =
+				key === "l" || key === "j" ? RESIZE_STEP_PCT : -RESIZE_STEP_PCT;
+
+			const handle = paneTreeRef.current;
+			const current =
+				handle?.getSplitSizes(hit.split.id) ??
+				hit.split.sizes ??
+				equalSizes(hit.split.children.length);
+			const next = redistributeSizes(
+				current,
+				hit.branchIndex,
+				delta,
+				RESIZE_MIN_PCT,
+			);
+			handle?.setSplitSizes(hit.split.id, next);
+		}
+		window.addEventListener("keydown", onKeyDown);
+		return () => {
+			window.removeEventListener("keydown", onKeyDown);
+		};
+	}, [focusedLeafId]);
+
 	// Cmd+, opens the settings dialog (parity with palette command and the
 	// vim `:settings` ex command).
 	useEffect(() => {
@@ -607,38 +673,11 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 		[vimSettings],
 	);
 
-	return (
-		<div
-			className="drag-region flex h-dvh w-dvw flex-col overflow-hidden bg-background text-foreground"
-			style={{
-				paddingLeft: "var(--outer-gap)",
-				paddingRight: "var(--outer-gap)",
-				paddingBottom: "var(--outer-gap)",
-				paddingTop: 0,
-			}}
-		>
-			{topBarVisible ? (
-				<TopBar
-					vaultPath={vaultPath}
-					activeFilePath={activeBuffer.filePath}
-					selection={selection}
-					tabCount={tabs.length}
-					onOpenPalette={() => openPaletteWith()}
-					onOpenView={(id) => openView(id)}
-				/>
-			) : null}
-			<main
-				className="no-drag-region flex min-h-0 flex-1 items-stretch overflow-hidden"
-				style={{
-					gap: "var(--inner-gap)",
-					borderWidth: cardBorderVisible ? "1px" : "0px",
-					borderStyle: "solid",
-					borderColor: "var(--border)",
-					borderRadius: "var(--radius-xl, 0.75rem)",
-				}}
-			>
-				<AnimatePresence initial={false}>
-					<PaneShell key="editor" paneKey="editor">
+	const renderLeaf = useCallback(
+		(leaf: PaneLeaf) => {
+			if (leaf.view === "editor") {
+				return (
+					<PaneShell paneKey="editor" data-pane-id={leaf.id}>
 						<div
 							className={`flex h-full min-w-0 flex-1 overflow-hidden rounded-xl bg-card text-card-foreground ${layoutSettings.centerContent ? "justify-center" : ""}`}
 						>
@@ -669,16 +708,68 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 							</div>
 						</div>
 					</PaneShell>
-					{openPanes.map((kind) => (
-						<PaneShell key={kind} paneKey={kind}>
-							<ViewCard
-								blocks={blocks}
-								view={kind}
-								onClose={() => closePane(kind)}
-							/>
-						</PaneShell>
-					))}
-				</AnimatePresence>
+				);
+			}
+			const kind = leaf.view as ViewKind;
+			return (
+				<PaneShell paneKey={leaf.id} data-pane-id={leaf.id}>
+					<ViewCard
+						blocks={blocks}
+						view={kind}
+						onClose={() => closeLeaf(leaf.id)}
+					/>
+				</PaneShell>
+			);
+		},
+		[
+			activeBuffer,
+			blocks,
+			closeLeaf,
+			editorOpts,
+			layoutSettings.centerContent,
+			layoutSettings.noteWidthPct,
+			onVimModeChange,
+			vimHostBindings,
+			vimOpts,
+			vimSettings.enabled,
+		],
+	);
+
+	return (
+		<div
+			className="drag-region flex h-dvh w-dvw flex-col overflow-hidden bg-background text-foreground"
+			style={{
+				paddingLeft: "var(--outer-gap)",
+				paddingRight: "var(--outer-gap)",
+				paddingBottom: "var(--outer-gap)",
+				paddingTop: 0,
+			}}
+		>
+			{topBarVisible ? (
+				<TopBar
+					vaultPath={vaultPath}
+					activeFilePath={activeBuffer.filePath}
+					selection={selection}
+					tabCount={tabs.length}
+					onOpenPalette={() => openPaletteWith()}
+					onOpenView={(id) => openView(id)}
+				/>
+			) : null}
+			<main
+				className="no-drag-region flex min-h-0 flex-1 items-stretch overflow-hidden"
+				style={{
+					borderWidth: cardBorderVisible ? "1px" : "0px",
+					borderStyle: "solid",
+					borderColor: "var(--border)",
+					borderRadius: "var(--radius-xl, 0.75rem)",
+				}}
+			>
+				<PaneTree
+					ref={paneTreeRef}
+					tree={paneTree}
+					onLayoutChange={setSplitSizes}
+					renderLeaf={renderLeaf}
+				/>
 			</main>
 
 			<CommandPalette
