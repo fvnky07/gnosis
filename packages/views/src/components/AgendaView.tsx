@@ -1,13 +1,17 @@
+import type { ReactNode } from "react";
 import type { AgendaMode } from "../lib/agenda";
 import type { OnOpenBlock, ViewBlock } from "../types";
 import { AgendaCalendar } from "./AgendaCalendar";
-import { EmptyState } from "./EmptyState";
 
 interface AgendaViewProps {
 	blocks: ViewBlock[];
 	onOpenBlock?: OnOpenBlock;
 	defaultMode?: AgendaMode;
 	className?: string;
+	/** Slotted into Schedule-X's header before the Today/nav cluster. */
+	headerLeading?: ReactNode;
+	/** Slotted into Schedule-X's header after the view/date cluster. */
+	headerTrailing?: ReactNode;
 }
 
 /**
@@ -21,31 +25,18 @@ export function AgendaView({
 	onOpenBlock,
 	defaultMode = "week",
 	className,
+	headerLeading,
+	headerTrailing,
 }: AgendaViewProps) {
-	const hasScheduled = blocks.some((b) => b.scheduled || b.deadline);
-
 	return (
 		<div className={`flex h-full flex-col text-sm ${className ?? ""}`}>
-			{!hasScheduled ? (
-				<EmptyState
-					title="No scheduled items"
-					body="Schedule a TODO with `<YYYY-MM-DD>` and it lands on the agenda."
-					cta={
-						<>
-							<kbd className="rounded border border-border px-1.5 py-0.5 font-mono text-[11px]">
-								⌘K
-							</kbd>{" "}
-							→ <code className="font-mono">t buy milk friday</code>
-						</>
-					}
-				/>
-			) : (
-				<AgendaCalendar
-					blocks={blocks}
-					defaultMode={defaultMode}
-					onOpenBlock={onOpenBlock}
-				/>
-			)}
+			<AgendaCalendar
+				blocks={blocks}
+				defaultMode={defaultMode}
+				onOpenBlock={onOpenBlock}
+				headerLeading={headerLeading}
+				headerTrailing={headerTrailing}
+			/>
 		</div>
 	);
 }

@@ -1,3 +1,8 @@
+// Schedule-X 3+ relies on the Temporal API, which WebKit (and therefore
+// Tauri's WKWebView on macOS) has not shipped yet. `temporal-polyfill/global`
+// installs `globalThis.Temporal` as a side effect on first import, so the
+// calendar package can construct PlainDate/Instant values without crashing.
+import "temporal-polyfill/global";
 import {
 	type CalendarEvent,
 	createViewDay,
@@ -8,7 +13,7 @@ import { createCurrentTimePlugin } from "@schedule-x/current-time";
 import { createEventsServicePlugin } from "@schedule-x/events-service";
 import { ScheduleXCalendar, useCalendarApp } from "@schedule-x/react";
 import "@schedule-x/theme-default/dist/calendar.css";
-import { useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import {
 	type ScheduleXEvent,
 	viewBlocksToScheduleXEvents,
@@ -21,6 +26,10 @@ interface AgendaCalendarProps {
 	blocks: ViewBlock[];
 	defaultMode?: AgendaCalendarMode;
 	onOpenBlock?: OnOpenBlock;
+	/** Injected into Schedule-X's header before the Today/nav cluster. */
+	headerLeading?: ReactNode;
+	/** Injected into Schedule-X's header after the view/date cluster. */
+	headerTrailing?: ReactNode;
 }
 
 const MODE_TO_VIEW_NAME: Record<AgendaCalendarMode, string> = {
@@ -64,6 +73,8 @@ export function AgendaCalendar({
 	blocks,
 	defaultMode = "week",
 	onOpenBlock,
+	headerLeading,
+	headerTrailing,
 }: AgendaCalendarProps) {
 	const [isDark, setIsDark] = useState<boolean>(detectDark);
 
@@ -112,9 +123,25 @@ export function AgendaCalendar({
 		calendar.setTheme(isDark ? "dark" : "light");
 	}, [calendar, isDark]);
 
+	// Schedule-X mounts custom-component slots via portals. The component
+	// reference must stay stable across renders or the calendar will
+	// re-register on every prop change, so memoize tiny pass-through wrappers
+	// that just render whatever ReactNode the host passed in.
+	const customComponents = useMemo(() => {
+		const slots: Record<string, () => ReactNode> = {};
+		if (headerLeading) slots.headerContentLeftPrepend = () => headerLeading;
+		if (headerTrailing) slots.headerContentRightAppend = () => headerTrailing;
+		return slots;
+		// Re-derive only when the leading/trailing nodes change identity. The
+		// node identities are owned by the parent (typically memoized there).
+	}, [headerLeading, headerTrailing]);
+
 	return (
 		<div className="flex h-full min-h-0 w-full flex-col">
-			<ScheduleXCalendar calendarApp={calendar} />
+			<ScheduleXCalendar
+				calendarApp={calendar}
+				customComponents={customComponents}
+			/>
 		</div>
 	);
 }

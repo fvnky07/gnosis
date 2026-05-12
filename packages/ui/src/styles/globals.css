@@ -347,4 +347,261 @@
 	--sx-color-error: var(--destructive);
 	--sx-internal-color-text: var(--foreground);
 	--sx-color-current-time-line: var(--agenda-now-line);
+
+	/* Schedule-X exposes its own type-scale tokens; tighten them down to match
+	 * the rest of the app instead of the default Material-ish sizes. */
+	--sx-font-extra-small: 10px;
+	--sx-font-small: 11px;
+	--sx-font-medium: 12px;
+	--sx-font-large: 13px;
+	--sx-font-extra-large: 14px;
+	--sx-calendar-header-input-font-size: 12px;
+	--sx-week-grid-hour-height: 44px;
+	--sx-rounding-extra-small: var(--radius-sm, 6px);
+	--sx-rounding-small: var(--radius-sm, 6px);
+	--sx-rounding-medium: var(--radius-md, 8px);
+	--sx-border: 1px solid var(--border);
+}
+
+/*
+ * Chrome restyle: the bundled Material-ish header/cells fight the rest of
+ * the app. Re-scope each piece to ghost buttons, flat day headers, and
+ * lower-contrast grid lines — all driven from base-lyra tokens.
+ */
+/* Pill bar: a single floating row holding everything from the agenda icon
+ * (slotted via `headerContentLeftPrepend`) through Today/nav/range/view/date
+ * to the close button (slotted via `headerContentRightAppend`). Margin top
+ * keeps it just inside the workspace pane edge. */
+.sx-react-calendar-wrapper .sx__calendar-header {
+	margin: 6px 6px 0;
+	padding: 4px 6px;
+	gap: 4px;
+	align-items: center;
+	background: var(--background);
+	border: 1px solid var(--border);
+	border-radius: 999px;
+	flex-wrap: nowrap;
+	overflow: hidden;
+	min-height: 36px;
+}
+
+.sx-react-calendar-wrapper .sx__calendar-header-content {
+	gap: 2px;
+	flex-wrap: nowrap;
+	min-width: 0;
+	flex: 1;
+}
+
+/* Push the trailing close button to the right edge of the pill and the
+ * view/date inputs to sit just before it. */
+.sx-react-calendar-wrapper .sx__calendar-header > *:last-child {
+	margin-left: auto;
+}
+
+.sx-react-calendar-wrapper .sx-pill-leading {
+	padding: 0 8px 0 4px;
+	margin-right: 2px;
+	border-right: 1px solid var(--border);
+	height: 24px;
+}
+
+.sx-react-calendar-wrapper .sx__forward-backward-navigation {
+	height: auto;
+	display: flex;
+	align-items: center;
+	gap: 2px;
+}
+
+/* Today + prev/next + view + date — all collapse to a flat ghost-button
+ * shape with the app's hover token. */
+.sx-react-calendar-wrapper .sx__today-button,
+.sx-react-calendar-wrapper .sx__calendar-header .sx__today-button,
+.sx-react-calendar-wrapper .sx__date-input,
+.sx-react-calendar-wrapper .sx__calendar-header .sx__date-input,
+.sx-react-calendar-wrapper .sx__view-selection-selected-item {
+	height: 28px;
+	padding: 0 10px;
+	font-size: 12px;
+	font-weight: 500;
+	border-radius: var(--radius-sm, 6px);
+	border: 1px solid transparent;
+	background: transparent;
+	color: var(--foreground);
+	box-shadow: none;
+	cursor: pointer;
+}
+
+.sx-react-calendar-wrapper .sx__today-button:hover,
+.sx-react-calendar-wrapper .sx__today-button:focus,
+.sx-react-calendar-wrapper .sx__date-input:hover,
+.sx-react-calendar-wrapper .sx__date-input:focus,
+.sx-react-calendar-wrapper .sx__view-selection-selected-item:hover,
+.sx-react-calendar-wrapper .sx__view-selection-selected-item:focus {
+	background: var(--accent);
+	color: var(--accent-foreground);
+}
+
+.sx-react-calendar-wrapper .sx__chevron-wrapper {
+	min-height: 28px;
+	min-width: 28px;
+	height: 28px;
+	width: 28px;
+	border-radius: var(--radius-sm, 6px);
+}
+
+.sx-react-calendar-wrapper .sx__chevron-wrapper:hover,
+.sx-react-calendar-wrapper .sx__chevron-wrapper:focus {
+	background: var(--accent);
+}
+
+.sx-react-calendar-wrapper .sx__chevron-wrapper .sx__chevron {
+	width: 0.45rem;
+	height: 0.45rem;
+	border-width: 0.12rem 0.12rem 0 0;
+	border-color: var(--muted-foreground);
+}
+
+/* Drop the floating "View" / "Date" labels — the input content alone
+ * is enough at this size. The default stylesheet only hides them in
+ * `.is-dark`, but we never want them. */
+.sx-react-calendar-wrapper .sx__date-input-label,
+.sx-react-calendar-wrapper .sx__view-selection-label {
+	display: none;
+}
+
+.sx-react-calendar-wrapper .sx__date-input-chevron-wrapper,
+.sx-react-calendar-wrapper .sx__view-selection-chevron {
+	right: 8px;
+	width: 0.85rem;
+	height: 0.85rem;
+	filter: none;
+	opacity: 0.7;
+}
+
+.sx-react-calendar-wrapper .sx__date-input {
+	padding-right: 26px;
+}
+
+.sx-react-calendar-wrapper .sx__range-heading {
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--foreground);
+	letter-spacing: -0.01em;
+}
+
+/* Day-of-week strip: kill the 2em primary-fill circle for today and
+ * use a subtle accent dot under a normal-weight number instead. */
+.sx-react-calendar-wrapper .sx__week-grid__date,
+.sx-react-calendar-wrapper .sx__week-header .sx__week-grid__date {
+	padding: 6px 0;
+	gap: 2px;
+}
+
+.sx-react-calendar-wrapper .sx__week-grid__day-name {
+	font-size: 10px;
+	letter-spacing: 0.08em;
+	color: var(--muted-foreground);
+	font-weight: 600;
+}
+
+.sx-react-calendar-wrapper .sx__week-grid__date-number {
+	font-size: 13px;
+	font-weight: 500;
+	color: var(--foreground);
+	height: 1.6em;
+	width: 1.6em;
+}
+
+.sx-react-calendar-wrapper
+	.sx__week-grid__date--is-today
+	.sx__week-grid__day-name {
+	color: var(--primary);
+}
+
+.sx-react-calendar-wrapper
+	.sx__week-grid__date--is-today
+	.sx__week-grid__date-number {
+	background: color-mix(in oklch, var(--primary) 22%, transparent);
+	color: var(--foreground);
+	border-radius: 999px;
+}
+
+/* Hour rows: thinner, lower-contrast lines and a smaller axis label. */
+.sx-react-calendar-wrapper .sx__week-grid__hour {
+	border-top: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
+}
+
+.sx-react-calendar-wrapper .sx__week-grid__hour-text {
+	font-size: 10px;
+	color: var(--muted-foreground);
+	letter-spacing: 0.02em;
+	left: -38px;
+}
+
+.sx-react-calendar-wrapper .sx__week-header-border {
+	border-bottom-color: var(--border);
+}
+
+/* Month view: same softening as the time grid. */
+.sx-react-calendar-wrapper .sx__month-grid-day__header-date,
+.sx-react-calendar-wrapper .sx__month-grid-day__header-day-name {
+	font-size: 11px;
+	color: var(--muted-foreground);
+	font-weight: 500;
+}
+
+.sx-react-calendar-wrapper .sx__month-grid-cell {
+	border-color: color-mix(in oklch, var(--border) 60%, transparent);
+}
+
+.sx-react-calendar-wrapper .sx__time-grid-day:not(:first-child),
+.sx-react-calendar-wrapper .sx__week-grid__date:not(:first-child) {
+	border-left: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
+}
+
+/* Event chips: thinner outline, tighter type, smaller corner radius so they
+ * stop reading as Material pills. */
+.sx-react-calendar-wrapper .sx__time-grid-event,
+.sx-react-calendar-wrapper .sx__date-grid-event,
+.sx-react-calendar-wrapper .sx__month-grid-event {
+	border-radius: var(--radius-sm, 6px);
+	padding: 3px 6px;
+	font-size: 11px;
+	line-height: 1.3;
+	border: 1px solid color-mix(in oklch, currentColor 35%, transparent);
+}
+
+.sx-react-calendar-wrapper .sx__time-grid-event-title,
+.sx-react-calendar-wrapper .sx__date-grid-event-text,
+.sx-react-calendar-wrapper .sx__month-grid-event {
+	font-weight: 500;
+}
+
+.sx-react-calendar-wrapper .sx__time-grid-event-time,
+.sx-react-calendar-wrapper .sx__date-grid-event-time,
+.sx-react-calendar-wrapper .sx__month-grid-event-time {
+	font-size: 10px;
+	opacity: 0.75;
+}
+
+/* View-selection popup: match card surface + softer items. */
+.sx-react-calendar-wrapper .sx__view-selection-items {
+	border-radius: var(--radius-md, 8px);
+	border: 1px solid var(--border);
+	box-shadow: 0 8px 24px -8px rgb(0 0 0 / 0.25);
+	background: var(--popover, var(--card));
+	padding: 4px;
+}
+
+.sx-react-calendar-wrapper .sx__view-selection-item {
+	padding: 6px 10px;
+	border-radius: var(--radius-sm, 6px);
+	font-size: 12px;
+}
+
+.sx-react-calendar-wrapper .sx__view-selection-item:hover,
+.sx-react-calendar-wrapper .sx__view-selection-item:focus,
+.sx-react-calendar-wrapper .sx__view-selection-item.is-selected {
+	background: var(--accent);
+	color: var(--accent-foreground);
 }
