@@ -15,6 +15,7 @@ import {
 	foldGutter,
 	indentOnInput,
 	indentUnit,
+	syntaxHighlighting,
 } from "@codemirror/language";
 import { searchKeymap } from "@codemirror/search";
 import {
@@ -34,6 +35,8 @@ import {
 	type ViewUpdate,
 } from "@codemirror/view";
 import { findOrgTokens, ORG_TOKEN_CLASS } from "./highlight";
+import { livePreviewHighlightStyle } from "./highlight-style";
+import { livePreviewExtension } from "./live-preview";
 import { DEFAULT_EDITOR_OPTIONS, type EditorOptions } from "./types";
 
 /**
@@ -87,6 +90,13 @@ export function buildBaseExtensions(
 		markdown(),
 		gnosisOrgExtras,
 	];
+
+	if (opts.livePreview) {
+		extensions.push(
+			syntaxHighlighting(livePreviewHighlightStyle),
+			...livePreviewExtension,
+		);
+	}
 
 	if (opts.wordWrap) extensions.push(EditorView.lineWrapping);
 	if (opts.lineNumbers !== "off") {

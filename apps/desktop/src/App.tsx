@@ -674,6 +674,7 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 			autocomplete: editorSettings.autocomplete,
 			rulers: editorSettings.rulers,
 			renderWhitespace: editorSettings.renderWhitespace,
+			livePreview: editorSettings.livePreview,
 		}),
 		[editorSettings],
 	);

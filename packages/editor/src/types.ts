@@ -36,6 +36,13 @@ export interface EditorOptions {
 	/** Comma-separated rulers (`"80,100"`). Empty disables. */
 	rulers: string;
 	renderWhitespace: WhitespaceRenderMode;
+	/**
+	 * Obsidian-style live preview: hide markdown syntax tokens
+	 * (`#`, `*`, `_`, link punctuation) when the cursor sits outside the
+	 * element and render headings/emphasis/code visually inline. Source
+	 * stays raw markdown; this is overlay-only.
+	 */
+	livePreview: boolean;
 }
 
 export interface BufferProps {
@@ -87,6 +94,7 @@ export const DEFAULT_EDITOR_OPTIONS: EditorOptions = {
 	autocomplete: true,
 	rulers: "",
 	renderWhitespace: "selection",
+	livePreview: false,
 };
 
 /** Kind of org-flavored token recognized by {@link findOrgTokens}. */

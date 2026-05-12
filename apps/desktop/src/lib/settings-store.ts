@@ -122,6 +122,7 @@ export interface EditorSettings {
 	cursorWidthPx: number;
 	scrolloff: number;
 	autocomplete: boolean;
+	livePreview: boolean;
 }
 
 export interface VimSettings {
@@ -252,6 +253,7 @@ export const DEFAULT_SETTINGS: SettingsSnapshot = {
 		cursorWidthPx: 2,
 		scrolloff: 8,
 		autocomplete: true,
+		livePreview: false,
 	},
 	vim: {
 		enabled: true,

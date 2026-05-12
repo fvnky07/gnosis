@@ -1104,6 +1104,19 @@ function EditorSettingsPane(): ReactNode {
 				/>
 			</SubSection>
 
+			<SubSection title="Live preview">
+				<SettingRow
+					label="Markdown live preview"
+					description="Hide markdown syntax (`#`, `*`, `_`, link punctuation) when the cursor is outside the element and render headings, emphasis, and inline code visually. Source stays raw markdown — toggling is non-destructive."
+					control={
+						<SwitchField
+							checked={e.livePreview}
+							onCheckedChange={(livePreview) => update({ livePreview })}
+						/>
+					}
+				/>
+			</SubSection>
+
 			<SubSection title="Cursor">
 				<SettingRow
 					label="Cursor style"

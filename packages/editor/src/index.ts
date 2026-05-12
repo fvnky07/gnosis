@@ -4,6 +4,8 @@ export { BlockSnippet } from "./block-snippet";
 export { createEditor } from "./create-editor";
 export { buildBaseExtensions, gnosisOrgExtras } from "./extensions";
 export { findOrgTokens, ORG_TOKEN_CLASS } from "./highlight";
+export { livePreviewHighlightStyle } from "./highlight-style";
+export { livePreviewExtension, livePreviewPlugin } from "./live-preview";
 export type { VimMode } from "./mode-observer";
 export { buildOrgMotions } from "./motions";
 export type { SelectionInfo } from "./selection-observer";
