@@ -53,6 +53,14 @@ const ROOT_ENTRIES: RootEntry[] = [
 		keywords: ["buffers", "tab", "switch"],
 		seed: "tabs ",
 	},
+	{
+		id: "root.nav.daily",
+		label: "Open daily note",
+		detail: "Jump to today's daily note (creates it if missing)",
+		section: "Navigation",
+		keywords: ["today", "journal", "dn", "diary", "daily notes"],
+		command: "daily.open",
+	},
 
 	// ── Views ──────────────────────────────────────────────────────────────
 	{
