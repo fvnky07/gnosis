@@ -1,4 +1,4 @@
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import type { CSSProperties, ReactNode } from "react";
 import { useSettings } from "../lib/settings-store";
 
@@ -8,6 +8,8 @@ interface PaneShellProps {
 	children: ReactNode;
 	className?: string;
 	style?: CSSProperties;
+	/** Pane id exposed for keyboard-focus targeting (resize shortcuts). */
+	"data-pane-id"?: string;
 }
 
 const ENTER = { opacity: 0, filter: "blur(14px)", scale: 0.94 };
@@ -25,6 +27,7 @@ export function PaneShell({
 	children,
 	className,
 	style,
+	"data-pane-id": dataPaneId,
 }: PaneShellProps) {
 	const motionEnabled = useSettings((s) => s.appearance.motionEnabled);
 	const respectReducedMotion = useSettings(
@@ -45,12 +48,11 @@ export function PaneShell({
 			animate={ACTIVE}
 			exit={animate ? ENTER : { opacity: 0 }}
 			transition={transition}
-			className={`flex min-w-[280px] flex-1 overflow-hidden ${className ?? ""}`}
+			className={`flex h-full min-h-0 w-full min-w-0 overflow-hidden ${className ?? ""}`}
 			style={style}
+			data-pane-id={dataPaneId}
 		>
 			{children}
 		</motion.div>
 	);
 }
-
-export { AnimatePresence };

@@ -17,8 +17,8 @@
 		"@gnosis/editor": "workspace:*",
 		"@gnosis/palette": "workspace:*",
 		"@gnosis/ui": "workspace:*",
-		"@gnosis/vim-runtime": "workspace:*",
 		"@gnosis/views": "workspace:*",
+		"@gnosis/vim-runtime": "workspace:*",
 		"@tauri-apps/api": "^2",
 		"@tauri-apps/plugin-dialog": "^2",
 		"@tauri-apps/plugin-fs": "^2",
@@ -30,6 +30,7 @@
 		"motion": "^12",
 		"react": "^19.2.3",
 		"react-dom": "^19.2.3",
+		"react-resizable-panels": "^4.11.0",
 		"zustand": "^5"
 	},
 	"devDependencies": {
