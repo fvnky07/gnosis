@@ -122,6 +122,7 @@ export interface EditorSettings {
 	cursorWidthPx: number;
 	scrolloff: number;
 	autocomplete: boolean;
+	livePreview: boolean;
 }
 
 export interface VimSettings {
@@ -229,7 +230,8 @@ export const DEFAULT_SETTINGS: SettingsSnapshot = {
 		breadcrumbsEnabled: false,
 	},
 	editor: {
-		fontFamily: "Commit Mono",
+		fontFamily:
+			'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
 		fontSize: 14,
 		lineHeight: 1.55,
 		letterSpacingPx: 0,
@@ -252,6 +254,7 @@ export const DEFAULT_SETTINGS: SettingsSnapshot = {
 		cursorWidthPx: 2,
 		scrolloff: 8,
 		autocomplete: true,
+		livePreview: false,
 	},
 	vim: {
 		enabled: true,

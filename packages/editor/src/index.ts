@@ -3,7 +3,17 @@ export const PACKAGE = "@gnosis/editor";
 export { BlockSnippet } from "./block-snippet";
 export { createEditor } from "./create-editor";
 export { buildBaseExtensions, gnosisOrgExtras } from "./extensions";
-export { findOrgTokens, ORG_TOKEN_CLASS } from "./highlight";
+export {
+	findOrgProseTokens,
+	findOrgTokens,
+	ORG_PROSE_BODY_CLASS,
+	ORG_TOKEN_CLASS,
+} from "./highlight";
+export {
+	livePreviewExtension,
+	livePreviewPlugin,
+	orgLivePreviewPlugin,
+} from "./live-preview";
 export type { VimMode } from "./mode-observer";
 export { buildOrgMotions } from "./motions";
 export type { SelectionInfo } from "./selection-observer";
@@ -13,6 +23,8 @@ export type {
 	CursorStyleOption,
 	EditorOptions,
 	LineNumbersMode,
+	OrgProseToken,
+	OrgProseTokenKind,
 	OrgToken,
 	OrgTokenKind,
 	WhitespaceRenderMode,

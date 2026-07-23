@@ -1,6 +1,5 @@
 import type {
 	EditorOptions,
-	SelectionInfo,
 	VimHostBindings,
 	VimMode,
 	VimOptions,
@@ -32,6 +31,7 @@ import {
 	redistributeSizes,
 } from "./lib/pane-layout";
 import { createRuntime, type DesktopRuntime } from "./lib/runtime";
+import { useSelectionStore } from "./lib/selection-store";
 import { useApplySettings } from "./lib/settings-apply";
 import { useSettings } from "./lib/settings-store";
 import { ensureVaultPath } from "./lib/vault";
@@ -164,7 +164,7 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 		filePath: string;
 		doc: string;
 	}>({ id: "welcome", filePath: "(welcome)", doc: WELCOME_ORG });
-	const [selection, setSelection] = useState<SelectionInfo | null>(null);
+	const setSelection = useSelectionStore((s) => s.setSelection);
 
 	// Multi-pane workspace: the layout lives in the Zustand store as a tree of
 	// horizontal/vertical splits so widths persist across restarts and so
@@ -674,6 +674,7 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 			autocomplete: editorSettings.autocomplete,
 			rulers: editorSettings.rulers,
 			renderWhitespace: editorSettings.renderWhitespace,
+			livePreview: editorSettings.livePreview,
 		}),
 		[editorSettings],
 	);
@@ -768,7 +769,6 @@ function ReadyShell({ vaultPath, schemaVersion }: ReadyShellProps) {
 				<TopBar
 					vaultPath={vaultPath}
 					activeFilePath={activeBuffer.filePath}
-					selection={selection}
 					tabCount={tabs.length}
 					onOpenPalette={() => openPaletteWith()}
 					onOpenView={(id) => openView(id)}
